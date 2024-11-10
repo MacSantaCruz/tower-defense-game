@@ -1,0 +1,6 @@
+*.log
+logs/
+.DS_Store
+dist/
+*.love
+love-win32.zip
