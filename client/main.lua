@@ -167,9 +167,7 @@ function love.mousepressed(x, y, button)
                 local isValidPlacement = player.towerManager:isValidPlacement(gridX, gridY)
 
                 if isValidPlacement then
-                    LOGGER.info('Is Valid placement')
-                    -- Only send to server, don't create tower yet
-                    Network:sendTowerPlacement(worldX, worldY, player.towerManager.selectedTowerType)
+                    Network:placeTower(worldX, worldY, player.towerManager.selectedTowerType)
                 end
             end
         else
@@ -192,6 +190,6 @@ function love.keypressed(key)
     elseif key == "3" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:sendEnemySpawn(1, "fastEnemy", targetSide)
+        Network:spawnEnemy(1, "fastEnemy", targetSide)
     end
 end
