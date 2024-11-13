@@ -121,36 +121,46 @@ function GameServer:update()
 
     -- Send periodic updates
     if currentTime - (self.lastUpdateTime or 0) > 0.05 then
-        -- Create a combined update message with separate lists
-        local updateMessage = {
-            type = "gameUpdates",
-            enemyUpdates = self.pendingEnemyUpdates,
-            towerUpdates = self.pendingTowerUpdates
-        }
-
-        -- Only broadcast if we have accumulated updates
-        if #self.pendingEnemyUpdates > 0 or #self.pendingTowerUpdates > 0 then
-            logger.info("Sending updates:")
-            if #self.pendingTowerUpdates > 0 then
-                logger.info("Tower updates:")
-                for _, update in ipairs(self.pendingTowerUpdates) do
-                    logger.info("  -", update.id, update.type)
-                end
-            end
-            if #self.pendingEnemyUpdates > 0 then
-                logger.info("Enemy updates:")
-                for _, update in ipairs(self.pendingEnemyUpdates) do
-                    logger.info("  -", update.id, update.type)
-                end
+        -- Split updates into smaller chunks if needed
+        local MAX_UPDATES_PER_MESSAGE = 20
+        
+        -- Process enemy updates in chunks
+        for i = 1, #self.pendingEnemyUpdates, MAX_UPDATES_PER_MESSAGE do
+            local chunk = {}
+            for j = i, math.min(i + MAX_UPDATES_PER_MESSAGE - 1, #self.pendingEnemyUpdates) do
+                table.insert(chunk, self.pendingEnemyUpdates[j])
             end
             
-            self:broadcast(updateMessage)
-            
-            -- Clear accumulated updates after sending
-            self.pendingEnemyUpdates = {}
-            self.pendingTowerUpdates = {}
+            if #chunk > 0 then
+                local updateMessage = {
+                    type = "gameUpdates",
+                    enemyUpdates = chunk,
+                    towerUpdates = {}
+                }
+                self:broadcast(updateMessage)
+            end
         end
         
+        -- Process tower updates in chunks
+        for i = 1, #self.pendingTowerUpdates, MAX_UPDATES_PER_MESSAGE do
+            local chunk = {}
+            for j = i, math.min(i + MAX_UPDATES_PER_MESSAGE - 1, #self.pendingTowerUpdates) do
+                table.insert(chunk, self.pendingTowerUpdates[j])
+            end
+            
+            if #chunk > 0 then
+                local updateMessage = {
+                    type = "gameUpdates",
+                    enemyUpdates = {},
+                    towerUpdates = chunk
+                }
+                self:broadcast(updateMessage)
+            end
+        end
+        
+        -- Clear accumulated updates after sending
+        self.pendingEnemyUpdates = {}
+        self.pendingTowerUpdates = {}
         self.lastUpdateTime = currentTime
     end
 

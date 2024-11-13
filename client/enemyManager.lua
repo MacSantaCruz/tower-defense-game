@@ -3,92 +3,104 @@ local EnemyFactory = require "enemyFactory"
 local ClientEnemyManager = {
     enemies = {},
     side = nil,
-    serverUpdateRate = 0.05
+    serverUpdateRate = 0.05,
+    interpolationBuffer = .1
 }
 
 function ClientEnemyManager:new(config)
     local manager = setmetatable({}, { __index = self })
     manager.side = config.side
     manager.enemies = {}
+    manager.moveCache = {}
     manager.lastUpdateTime = love.timer.getTime()  -- Initialize time right away
     return manager
 end
 
 function ClientEnemyManager:update(dt)
     local currentTime = love.timer.getTime()
-    local timeSinceUpdate = currentTime - self.lastUpdateTime
     
     for _, enemy in pairs(self.enemies) do
         if enemy.targetX then
-            -- Calculate velocity if we have a previous position
-            if not enemy.velocityX then
-                enemy.velocityX = 0
-                enemy.velocityY = 0
-                enemy.prevX = enemy.x
-                enemy.prevY = enemy.y
+            -- Only calculate movement if we haven't cached it or position changed
+            local cacheKey = enemy.id .. "_" .. enemy.targetX .. "_" .. enemy.targetY
+            local moveData = self.moveCache[cacheKey]
+            
+            if not moveData then
+                -- Calculate once and cache
+                local dx = enemy.targetX - enemy.x
+                local dy = enemy.targetY - enemy.y
+                local distSq = dx * dx + dy * dy  -- Avoid square root when possible
+                
+                -- Only create new movement data if actually moving
+                if distSq > 0.01 then  -- Small threshold for movement
+                    moveData = {
+                        dx = dx,
+                        dy = dy,
+                        distSq = distSq,
+                        velocityX = dx / self.serverUpdateRate,
+                        velocityY = dy / self.serverUpdateRate,
+                        direction = math.atan2(dy, dx)
+                    }
+                    self.moveCache[cacheKey] = moveData
+                    
+                    -- Cleanup old cache entries
+                    if enemy.lastCacheKey and enemy.lastCacheKey ~= cacheKey then
+                        self.moveCache[enemy.lastCacheKey] = nil
+                    end
+                    enemy.lastCacheKey = cacheKey
+                end
             end
             
-            -- Update velocity based on target position
-            local dx = enemy.targetX - enemy.x
-            local dy = enemy.targetY - enemy.y
-            local distance = math.sqrt(dx * dx + dy * dy)
-            
-            -- Only update velocity if we're moving significantly
-            if distance > 0.1 then
-                -- Calculate time-adjusted velocity
-                enemy.velocityX = dx / self.serverUpdateRate
-                enemy.velocityY = dy / self.serverUpdateRate
+            if moveData then
+                -- Simple linear interpolation instead of complex prediction
+                local progress = dt / self.interpolationBuffer
+                progress = math.min(progress, 1.0)  -- Clamp to avoid overshooting
                 
-                -- Store previous position for next frame
-                enemy.prevX = enemy.x
-                enemy.prevY = enemy.y
-                
-                -- Predict next position using velocity
-                local predictedX = enemy.x + enemy.velocityX * dt
-                local predictedY = enemy.y + enemy.velocityY * dt
-                
-                -- Smoothly interpolate towards predicted position
-                local lerpFactor = 0.2  -- Adjust this for desired smoothness
-                enemy.x = enemy.x + (predictedX - enemy.x) * lerpFactor
-                enemy.y = enemy.y + (predictedY - enemy.y) * lerpFactor
-                
-                -- Update direction based on actual movement
-                if math.abs(dx) > 0.01 or math.abs(dy) > 0.01 then
-                    enemy.direction = math.atan2(dy, dx)
-                end
+                enemy.x = enemy.x + moveData.velocityX * dt * progress
+                enemy.y = enemy.y + moveData.velocityY * dt * progress
+                enemy.direction = moveData.direction
             end
         end
         
-        enemy:update(dt)
+        -- Minimal enemy update
+        if enemy.update then
+            enemy:update(dt)
+        end
     end
 end
+
 
 function ClientEnemyManager:updateEnemy(id, data)
     local enemy = self.enemies[id]
     if enemy then
-        -- Update health
-        if data.health then
+        if data.health and data.health ~= enemy.health then
             enemy.health = data.health
-            
-            -- Optionally trigger damage animation/effect
-            if enemy.health < enemy.maxHealth then
-                self:onEnemyDamaged(enemy)
-            end
+            self:onEnemyDamaged(enemy)
         end
         
-        -- Update position if provided
         if data.x and data.y then
+            -- Clear movement cache when receiving new position
+            if enemy.lastCacheKey then
+                self.moveCache[enemy.lastCacheKey] = nil
+            end
+            
             enemy.targetX = data.x
             enemy.targetY = data.y
         end
         
-        -- Update any other properties
         if data.direction then
             enemy.direction = data.direction
         end
     end
 end
 
+function ClientEnemyManager:removeEnemy(id)
+    local enemy = self.enemies[id]
+    if enemy and enemy.lastCacheKey then
+        self.moveCache[enemy.lastCacheKey] = nil
+    end
+    self.enemies[id] = nil
+end
 
 function ClientEnemyManager:onEnemyDamaged(enemy)
     -- Add visual feedback when enemy takes damage
@@ -98,7 +110,10 @@ function ClientEnemyManager:onEnemyDamaged(enemy)
 end
 
 function ClientEnemyManager:spawnEnemy(enemyData)
-    print('Spawning Enemy on client')
+    -- Remove any existing enemy with same ID to prevent duplicates
+    if self.enemies[enemyData.id] then
+        self:removeEnemy(enemyData.id)
+    end
     -- Create enemy using factory
     local enemy = EnemyFactory:spawnEnemy(
         enemyData.type,

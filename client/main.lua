@@ -8,6 +8,16 @@ local PlayerManager = require "./playerManager"
 local Network = require "network"
 local logger = require('logger')
 
+local performanceStats = {
+    frameTime = 0,
+    updateTime = 0,
+    drawTime = 0,
+    enemyCount = 0,
+    fps = 0,
+    lastTime = love.timer.getTime()
+}
+
+
 function love.load()
     _G.LOGGER = logger
     -- Initialize network connection
@@ -18,7 +28,7 @@ function love.load()
     end
 
     -- Connect to server (could be localhost for testing or a remote server)
-    local serverHost = "24.199.101.226"  -- Change this for remote server
+    local serverHost = "24.199.101.226"  -- "localhost"-- Change this for remote server
     local serverPort = 12345
     
     success = Network:connect(serverHost, serverPort)
@@ -74,6 +84,7 @@ function love.load()
 end
 
 function love.update(dt)
+    local startTime = love.timer.getTime()
     -- Update network state
     Network:update(dt)
     
@@ -91,10 +102,23 @@ function love.update(dt)
         rightPlayer.enemyManager:update(dt)
         leftPlayer.towerManager:update(dt, camera, leftPlayer.enemyManager.enemies)
         rightPlayer.towerManager:update(dt, camera, rightPlayer.enemyManager.enemies)
+
+
+        performanceStats.updateTime = love.timer.getTime() - startTime
+        performanceStats.frameTime = love.timer.getTime() - performanceStats.lastTime
+        performanceStats.lastTime = love.timer.getTime()
+        performanceStats.fps = 1 / performanceStats.frameTime
+        performanceStats.enemyCount = 0
+        for _, player in pairs(playerManager.players) do
+            for _ in pairs(player.enemyManager.enemies) do
+                performanceStats.enemyCount = performanceStats.enemyCount + 1
+            end
+        end
     end
 end
 
 function love.draw()
+    local startTime = love.timer.getTime()
     love.graphics.clear()
 
     -- World space drawing
@@ -145,6 +169,17 @@ function love.draw()
     -- Player side indicator
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print("Playing as: " .. (Network.playerSide or "unknown"), statusX, 50)
+
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.print(string.format(
+        "FPS: %.1f\nUpdate: %.2fms\nDraw: %.2fms\nEnemies: %d",
+        performanceStats.fps,
+        performanceStats.updateTime * 1000,
+        performanceStats.drawTime * 1000,
+        performanceStats.enemyCount
+    ), 10, 60)
+    
+    performanceStats.drawTime = love.timer.getTime() - startTime
 end
 
 function love.mousepressed(x, y, button)
@@ -191,5 +226,13 @@ function love.keypressed(key)
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
         Network:spawnEnemy(1, "fastEnemy", targetSide)
+    elseif key == "4" then
+        -- Enemy spawning
+        local targetSide = Network.playerSide == "left" and "right" or "left"
+        Network:spawnEnemy(2, "fastEnemy", targetSide)
+    elseif key == "5" then
+        -- Enemy spawning
+        local targetSide = Network.playerSide == "left" and "right" or "left"
+        Network:spawnEnemy(3, "fastEnemy", targetSide)
     end
 end
