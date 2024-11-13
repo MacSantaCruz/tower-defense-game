@@ -1,4 +1,5 @@
 local ServerEnemyFactory = require 'enemyFactory'
+local SpatialGrid = require "utils.spatialGrid"
 
 local ServerEnemyManager = {
     enemies = {},
@@ -10,6 +11,7 @@ function ServerEnemyManager:new(config)
     manager.spawnPoints = config.spawnPoints
     manager.enemies = {}
     manager.tileSize = config.tileSize
+    manager.grid = SpatialGrid.getInstance()
     return manager
 end
 
@@ -18,6 +20,7 @@ function ServerEnemyManager:update(dt)
     
     for id, enemy in pairs(self.enemies) do
         if enemy.health <= 0 then
+            self.grid:remove(enemy)
             self.enemies[id] = nil
             table.insert(updates,{
                 id = enemy.id,
@@ -39,6 +42,7 @@ function ServerEnemyManager:update(dt)
                     enemy.x = enemy.x + moveX
                     enemy.y = enemy.y + moveY
                     enemy.direction = math.atan2(dy, dx)
+                    self.grid:updateEntity(enemy)
                     print("Creating a movement update for: ", enemy.id)
                     -- Add to updates
                     table.insert(updates, {
@@ -58,7 +62,12 @@ function ServerEnemyManager:update(dt)
                         -- Enemy reached end
                         -- TODO: May need to clean up array but can't index like this anymore 
                         -- updates[id] = nil
+                        self.grid:remove(enemy)
                         self.enemies[id] = nil
+                        table.insert(updates,{
+                            id = enemy.id,
+                            type = 'enemyDied'
+                        })
                     end
                 end
             end
@@ -84,8 +93,19 @@ function ServerEnemyManager:spawnEnemy(data)
     enemy.pathPoints = spawnPoint.path
     enemy.currentPathIndex = 1
     self.enemies[enemy.id] = enemy
-    
+    self.grid:insert(enemy)
+
     return enemy
+end
+
+-- Add cleanup when the manager is destroyed or reset
+function ServerEnemyManager:cleanup()
+    -- Remove all enemies from the spatial grid
+    for id, enemy in pairs(self.enemies) do
+        self.grid:remove(enemy)
+    end
+    -- Clear the enemies table
+    self.enemies = {}
 end
 
 return ServerEnemyManager

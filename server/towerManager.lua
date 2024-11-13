@@ -1,5 +1,6 @@
 local TowerManager = {}
 local TowerFactory = require "./towerFactory"
+local SpatialGrid = require "utils.spatialGrid"
 local socket = require "socket"
 
 function TowerManager:new(config)
@@ -7,7 +8,9 @@ function TowerManager:new(config)
         towers = {},
         config = config or {},
         tileSize = config.tileSize or 32,
-        updateInterval = 0.05  -- 50ms, matching your server update rate
+        updateInterval = 0.05,
+        grid = SpatialGrid.getInstance(),
+        lastAttackTimes = {}
     }
     setmetatable(instance, { __index = self })
     return instance
@@ -22,12 +25,22 @@ function TowerManager:createTower(towerData)
                 towerData.side,
                 towerData.towerId
             )
+    -- Initialize attack timer for this tower
+    self.lastAttackTimes[towerData.towerId] = socket.gettime()
     self.towers[towerData.towerId] = newTower
+    self.grid:insert(newTower)
     return newTower
 end
 
 function TowerManager:removeTower(towerId)
-    self.towers[towerId] = nil
+    local tower = self.towers[towerId]
+    if tower then
+        -- Remove from spatial grid first
+        self.grid:remove(tower)
+        -- Then remove from towers table
+        self.towers[towerId] = nil
+        self.lastAttackTimes[towerId] = nil
+    end
 end
 
 function TowerManager:getTower(towerId)
@@ -36,19 +49,16 @@ end
 
 function TowerManager:update(dt, enemies)
     local updates = {}
+    local currentTime = socket.gettime()
     
     for towerId, tower in pairs(self.towers) do
-        tower.lastAttackTime = tower.lastAttackTime or socket.gettime()
-        local currentTime = socket.gettime()
+        local lastAttackTime = self.lastAttackTimes[towerId] or currentTime
 
-
-        if currentTime - tower.lastAttackTime >= tower.fireRate then
+        if currentTime - lastAttackTime >= tower.fireRate then
             local target = self:findTarget(tower, enemies)
             if target then
-                print(string.format("[Server] Tower %d attacking enemy %d", towerId, target.id))
-                
                 -- Record the attack time BEFORE processing
-                tower.lastAttackTime = currentTime
+                self.lastAttackTimes[towerId] = currentTime
                 
                 -- Add attack update
                 table.insert(updates, {
@@ -70,17 +80,7 @@ function TowerManager:update(dt, enemies)
                     y = target.y
                 })
 
-                print(string.format("[Server] Created updates for tower %d: attack and damage to enemy %d", 
-                    towerId, target.id))
             end
-        end
-    end
-    
-    -- Debug output for updates being sent
-    if next(updates) then
-        print("[Server] Sending updates:")
-        for id, update in pairs(updates) do
-            print(string.format("  - %s update for ID %s", update.type, id))
         end
     end
     
@@ -88,27 +88,39 @@ function TowerManager:update(dt, enemies)
 end
 
 
-function TowerManager:findTarget(tower, enemies)
-    
-    local closestEnemy = nil
-    local closestDistance = tower.range
-    local foundEnemies = 0
-    local validTargets = 0
 
-    for _, enemy in pairs(enemies) do
-        foundEnemies = foundEnemies + 1
-        if self:isValidTarget(tower, enemy) then
-            validTargets = validTargets + 1
-            local distance = self:calculateDistance(tower, enemy)
-            if distance <= tower.range and 
-               (not closestEnemy or distance < closestDistance) then
-                closestEnemy = enemy
-                closestDistance = distance
+function TowerManager:findTarget(tower)
+    -- Get all potential targets within range using spatial grid
+    local nearbyEntities = self.grid:getNearbyEntities(tower.x, tower.y, tower.range)
+    
+    if self.debugMode then
+        print(string.format("Tower %d checking %d nearby entities", tower.id, #nearbyEntities))
+    end
+    
+    local bestTarget = nil
+    local bestPriority = -1
+    local closestDistance = tower.range + 1  -- Initialize beyond range
+    
+    for _, entity in ipairs(nearbyEntities) do
+        -- Check if entity is an enemy (has health property)
+        if entity.health and self:isValidTarget(tower, entity) then
+            local distance = self:calculateDistance(tower, entity)
+            if distance <= tower.range then
+                local priority = self:calculateTargetPriority(tower, entity, distance)
+                
+                -- Update best target if this enemy has higher priority
+                -- or same priority but closer
+                if priority > bestPriority or 
+                   (priority == bestPriority and distance < closestDistance) then
+                    bestTarget = entity
+                    bestPriority = priority
+                    closestDistance = distance
+                end
             end
         end
     end
-
-    return closestEnemy
+    
+    return bestTarget
 end
 
 
@@ -125,10 +137,40 @@ function TowerManager:isValidTarget(tower, enemy)
     end
 end
 
+function TowerManager:calculateTargetPriority(tower, enemy, distance)
+    -- Base priority on enemy health percentage and distance
+    local healthPercent = enemy.health / enemy.maxHealth
+    local distancePercent = distance / tower.range
+    
+    -- Priority factors (adjust these based on your game balance)
+    local healthWeight = 0.4    -- Prefer targeting low health enemies
+    local distanceWeight = 0.6  -- Prefer targeting closer enemies
+    
+    -- Calculate priority (higher is better)
+    local priority = (healthWeight * (1 - healthPercent)) + 
+                    (distanceWeight * (1 - distancePercent))
+    
+    if self.debugMode then
+        print(string.format("Enemy %d priority: %.2f (health: %.2f%%, distance: %.2f%%)",
+            enemy.id, priority, healthPercent * 100, distancePercent * 100))
+    end
+    
+    return priority
+end
+
 function TowerManager:calculateDistance(point1, point2)
     local dx = point1.x - point2.x
     local dy = point1.y - point2.y
     return math.sqrt(dx * dx + dy * dy)
+end
+
+function TowerManager:cleanup()
+    -- Remove all towers from the spatial grid
+    for id, tower in pairs(self.towers) do
+        self.grid:remove(tower)
+    end
+    -- Clear the towers table
+    self.towers = {}
 end
 
 return TowerManager
