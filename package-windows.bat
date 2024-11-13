@@ -29,6 +29,7 @@ xcopy /E /I /Y "images" "staging\images\"
 xcopy /E /I /Y "enemies" "staging\enemies\"
 xcopy /E /I /Y "towers" "staging\towers\"
 xcopy /E /I /Y "sti" "staging\sti\"
+xcopy /E /I /Y "network" "staging\network\"
 
 :: Show what we're packaging
 echo Files being packaged:

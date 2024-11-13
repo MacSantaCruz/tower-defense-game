@@ -13,8 +13,6 @@ local GameServer = {
     port = 12345,
     clients = {},
     gameState = {
-        towers = {},
-        enemies = {},
         nextEntityId = 1
     },
     players = {
@@ -138,6 +136,14 @@ function GameServer:new()
         tileSize = server.tileSize
     })
 
+    function server:getEnemies()
+        return self.enemyManager.enemies
+    end
+
+    function server:getTowers()
+        return self.towerManager.towers
+    end
+
     server.pendingEnemyUpdates = {}
     server.pendingTowerUpdates = {}
 
@@ -251,18 +257,6 @@ function GameServer:update()
         self.lastUpdateTime = currentTime
     end
 
-    -- Update gameState
-    if enemyUpdates then
-        for _, update in ipairs(enemyUpdates) do
-            if update.type == "damage" and self.gameState.enemies[update.id] then
-                self.gameState.enemies[update.id].health = update.health
-                self.enemyManager.enemies[update.id].health = update.health
-            elseif update.type == "enemyDied" and self.gameState.enemies[update.id] then
-                self.gameState.enemies[update.id] = nil
-            end
-        end
-    end
-
     -- Handle client messages
     for client, data in pairs(self.clients) do
         local message, err = client:receive()
@@ -339,9 +333,6 @@ function GameServer:handleMessage(client, message)
             logger.info("Created Tower for side: ", newTower.side)
             
             if newTower then
-                -- Store in server game state
-                self.gameState.towers[towerId] = newTower
-                
                 -- Broadcast to all clients
                 self:broadcast({
                     type = "towerPlaced",
@@ -377,10 +368,6 @@ function GameServer:handleMessage(client, message)
         })
         
         if enemy then
-            
-            -- Store in server game state
-            self.gameState.enemies[enemyId] = enemy
-            
             -- Broadcast to all clients
             self:broadcast({
                 type = "enemySpawned",
@@ -447,7 +434,7 @@ function GameServer:isValidTowerPlacement(data)
     end
     
     -- Check collision with other towers
-    for _, tower in pairs(self.gameState.towers) do
+    for _, tower in pairs(self:getTowers()) do
         local dx = tower.x - data.x
         local dy = tower.y - data.y
         local distance = math.sqrt(dx * dx + dy * dy)
@@ -474,21 +461,16 @@ function GameServer:handleNewConnection(client)
         self.clients[client] = {
             side = side
         }
-        
-
-        -- Debug print the game state before sending
-        logger.info("Sending initialization with game state:")
-        logger.info("Number of towers:", #self.gameState.towers)
-        for id, tower in pairs(self.gameState.towers) do
-            logger.info(string.format("Tower %d: type=%s, side=%s, x=%d, y=%d",
-                id, tower.type, tower.side, tower.x, tower.y))
-        end
 
         -- Send initialization data to the new client
         self:sendToClient(client, {
             type = "initialization",
             side = side,
-            gameState = self.gameState
+            gameState = {
+                enemies = self:getEnemies(),
+                towers = self:getTowers(),
+                nextEntityId = self.gameState.nextEntityId
+            }
         })
         
         logger.info("New client connected as", side)
