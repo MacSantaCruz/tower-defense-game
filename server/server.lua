@@ -5,6 +5,7 @@ local Serialization = require "./serialization"
 local ServerEnemyManager = require "./enemyManager"
 local ServerTowerManager = require "./towerManager"
 local logger = require "logger"
+local MapConfig = require "utils.mapConfig"
 
 io.stdout:setvbuf('no')  -- Disable output buffering
 io.stderr:setvbuf('no')  -- Disable error buffering
@@ -23,117 +24,18 @@ local GameServer = {
 
 function GameServer:new()
     local server = setmetatable({}, { __index = self })
-    -- Add game configuration
-    local mapData = require("maps/kek_3")  
-    
-    -- Add game configuration
-    server.tileSize = 32  -- Same as client
-    server.mapConfig = {
-        width = 75 * 2,      -- Number of tiles wide
-        height = 56,      -- Number of tiles high
-        pathTiles = {},    -- Will store path tile positions
-        spawnPoints = {
-            left = {},
-            right = {}
-        },
-        paths = {}
-    }
 
-    -- Find the object Paths layer
-    local pathsLayer
-    for _, layer in ipairs(mapData.layers) do
-        if layer.type == "objectgroup" and layer.name == "Paths" then
-            pathsLayer = layer
-            break
-        end
-    end
-
-    -- Find the TilePath layer
-    local tilePathLayer
-    for _, layer in ipairs(mapData.layers) do
-        if layer.name == "TilePath" then
-            tilePathLayer = layer
-            break
-        end
-    end
-    
-    -- Process path tiles for both sides
-    if tilePathLayer then
-        for y = 1, server.mapConfig.height do
-            server.mapConfig.pathTiles[y] = {}
-            
-            -- Original (left) side
-            for x = 1, 75 do  -- Original map width
-                -- Lua arrays start at 1, adjust index calculation
-                local index = ((y-1) * 75) + x
-                if tilePathLayer.data[index] and tilePathLayer.data[index] ~= 0 then
-                    server.mapConfig.pathTiles[y][x] = true
-                    
-                    -- Mirror the path tile to the right side
-                    local mirroredX = (75 * 2) - x + 1  -- Mirror position
-                    server.mapConfig.pathTiles[y][mirroredX] = true
-                end
-            end
-        end
-    end
-
-    -- Figure out all the paths for enemies 
-    if pathsLayer then
-        local pathsById = {}
-        
-        -- First pass: collect polylines/paths
-        for _, object in ipairs(pathsLayer.objects) do
-            if object.shape == "polyline" then
-                local path = {}
-                -- Convert polyline points to absolute coordinates
-                for _, point in ipairs(object.polyline) do
-                    table.insert(path, {
-                        x = object.x + point.x,
-                        y = object.y + point.y
-                    })
-                end
-                path.name = object.name
-                pathsById[object.id] = path
-            end
-        end
-        
-        -- Second pass: process spawn points
-        for _, object in ipairs(pathsLayer.objects) do
-            if object.shape == "point" and object.name:match("^spawn_") then
-                local pathRef = object.properties.pathName
-                local pathId = pathRef and pathRef.id
-                local linkedPath = pathsById[pathId]
-                
-                if linkedPath then
-                    -- Create original spawn point
-                    table.insert(server.mapConfig.spawnPoints.left, {
-                        x = object.x,
-                        y = object.y,
-                        path = linkedPath,
-                        name = object.name
-                    })
-                    
-                    -- Create mirrored spawn point (flipping across center)
-                    local mirroredPath = server:createMirroredPath(linkedPath)
-                    table.insert(server.mapConfig.spawnPoints.right, {
-                        x = server.mapConfig.width * server.tileSize - object.x,
-                        y = object.y,
-                        path = mirroredPath,
-                        name = object.name .. "_mirrored"
-                    })
-                end
-            end
-        end
-    end
+    server.mapConfig = MapConfig
+    server.mapConfig:SetupMap()
 
     -- Initialize enemy manager with paths and spawn points
     server.enemyManager = ServerEnemyManager:new({
         spawnPoints = server.mapConfig.spawnPoints,
-        tileSize = server.tileSize
+        tileSize = server.mapConfig.tileSize
     })
 
     server.towerManager = ServerTowerManager:new({
-        tileSize = server.tileSize
+        tileSize = server.mapConfig.tileSize
     })
 
     function server:getEnemies()
@@ -418,8 +320,8 @@ function GameServer:isValidTowerPlacement(data)
     end
     
     -- Convert to tile coordinates
-    local tileX = math.floor(data.x / self.tileSize) + 1
-    local tileY = math.floor(data.y / self.tileSize) + 1
+    local tileX = math.floor(data.x / self.mapConfig.tileSize) + 1
+    local tileY = math.floor(data.y / self.mapConfig.tileSize) + 1
     
     -- Check map bounds
     if tileX < 1 or tileX > self.mapConfig.width or
@@ -438,13 +340,13 @@ function GameServer:isValidTowerPlacement(data)
         local dx = tower.x - data.x
         local dy = tower.y - data.y
         local distance = math.sqrt(dx * dx + dy * dy)
-        if distance < self.tileSize * 2 then
+        if distance < self.mapConfig.tileSize * 2 then
             return false
         end
     end
     
     -- Check if player is placing on their side
-    local isLeftSide = data.x < (self.mapConfig.width * self.tileSize / 2)
+    local isLeftSide = data.x < (self.mapConfig.width * self.mapConfig.tileSize / 2)
     if (data.side == "left" and not isLeftSide) or
        (data.side == "right" and isLeftSide) then
         return false
@@ -494,23 +396,6 @@ function GameServer:getNextId()
     local id = self.gameState.nextEntityId
     self.gameState.nextEntityId = self.gameState.nextEntityId + 1
     return id
-end
-
-function GameServer:createMirroredPath(originalPath)
-    if not originalPath then return nil end
-    
-    local mirroredPath = {}
-    local centerX = self.mapConfig.width * self.tileSize / 2
-    
-    for _, point in ipairs(originalPath) do
-        -- Mirror across the center line
-        table.insert(mirroredPath, {
-            x = (2 * centerX) - point.x,
-            y = point.y
-        })
-    end
-    
-    return mirroredPath
 end
 
 -- Start the server
