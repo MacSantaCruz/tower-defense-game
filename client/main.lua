@@ -28,7 +28,7 @@ function love.load()
     end
 
     -- Connect to server (could be localhost for testing or a remote server)
-    local serverHost = "24.199.101.226"  -- "localhost"-- Change this for remote server
+    local serverHost = "localhost" -- "24.199.101.226"  -- "localhost"-- Change this for remote server
     local serverPort = 12345
     
     success = Network:connect(serverHost, serverPort)
@@ -225,7 +225,7 @@ function love.keypressed(key)
     elseif key == "3" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(1, "fastEnemy", targetSide)
+        Network:spawnEnemy(1, "fighterEnemy", targetSide)
     elseif key == "4" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"

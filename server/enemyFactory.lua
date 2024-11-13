@@ -1,8 +1,11 @@
 local FastEnemy = require "./enemies/fastEnemy"
+local FighterEnemy = require "./enemies/fighterEnemy"
+
 
 local EnemyFactory = {
     enemyTypes = {
-        fastEnemy = FastEnemy
+        fastEnemy = FastEnemy,
+        fighterEnemy = FighterEnemy
     }
 }
 
