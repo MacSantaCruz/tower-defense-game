@@ -6,6 +6,7 @@ local ServerEnemyManager = require "./enemyManager"
 local ServerTowerManager = require "./towerManager"
 local logger = require "logger"
 local MapConfig = require "utils.mapConfig"
+local MessageHandler = require "utils.messageHandler"
 
 io.stdout:setvbuf('no')  -- Disable output buffering
 io.stderr:setvbuf('no')  -- Disable error buffering
@@ -27,6 +28,7 @@ function GameServer:new()
 
     server.mapConfig = MapConfig
     server.mapConfig:SetupMap()
+    server.messageHandler = MessageHandler:new(server)
 
     -- Initialize enemy manager with paths and spawn points
     server.enemyManager = ServerEnemyManager:new({
@@ -73,13 +75,6 @@ function GameServer:broadcast(message)
     for client, _ in pairs(self.clients) do
         self:sendToClient(client, message)
     end
-end
-
-function GameServer:sendDebugMessage(client, message)
-    return self:sendToClient(client, {
-        type = "debug",
-        message = message
-    })
 end
 
 function GameServer:start()
@@ -187,110 +182,7 @@ function GameServer:assignPlayerSide()
 end
 
 function GameServer:handleMessage(client, message)
-    logger.info("Handling Message:", message)
-    
-    -- Remove any 'return' prefix if it exists
-    if message:sub(1,6) == "return" then
-        message = message:sub(7)
-    end
-    
-    local fn, err = loadstring("return " .. message)
-    if not fn then
-        logger.error("Load failed:", err)
-        return
-    end
-    
-    local success, data = pcall(fn)
-    if not success then
-        logger.error("Failed to execute:", data)
-        return
-    end
-    
-    if not data then 
-        logger.info("No data returned")
-        return 
-    end
-
-    logger.info("Parsed data:", type(data))
-    for k,v in pairs(data) do
-        logger.info(k,v)
-    end
-    
-    if data.type == "placeTower" then
-        logger.info("Received placeTower")
-        -- Add the client's side to the data for validation
-        data.side = self.clients[client].side
-        logger.info("Creating Tower for side: ",self.clients[client].side)
-        -- Validate tower placement
-        if self:isValidTowerPlacement(data) then
-            local towerId = self:getNextId()
-            local newTowerData = {
-                towerType = data.towerType,
-                x = data.x,
-                y = data.y,
-                side = self.clients[client].side,
-                towerId = towerId
-            }
-            local newTower = self.towerManager:createTower(newTowerData)
-            logger.info("Created Tower for side: ", newTower.side)
-            
-            if newTower then
-                -- Broadcast to all clients
-                self:broadcast({
-                    type = "towerPlaced",
-                    tower = {
-                        id = newTower.id,
-                        type = data.towerType,
-                        x = data.x,
-                        y = data.y,
-                        side = self.clients[client].side
-                    }
-                })
-            end
-        else
-            -- Optionally notify client of invalid placement
-            self:sendToClient(client, {
-                type = "placementFailed",
-                reason = "Invalid tower placement"
-            })
-        end
-    elseif data.type == "spawnEnemy" then
-        logger.info('Got Spawn Enemy in Server')
-        local side = data.targetSide
-        logger.info('Got spawn for side: ', side)
-        -- Get next available ID
-        local enemyId = self:getNextId()
-        
-        -- Create enemy in manager
-        local enemy = self.enemyManager:spawnEnemy({
-            id = enemyId,
-            enemyType = data.enemyType,
-            spawnPointIndex = data.spawnPointIndex,
-            side = side
-        })
-        
-        if enemy then
-            -- Broadcast to all clients
-            self:broadcast({
-                type = "enemySpawned",
-                enemy = {
-                    id = enemy.id,
-                    type = data.enemyType,
-                    x = enemy.x,
-                    y = enemy.y,
-                    targetSide = side,
-                    side = side, 
-                    health = enemy.health,
-                    maxHealth = enemy.maxHealth
-                }
-            })
-
-            logger.info(string.format("Enemy spawned: id=%d, type=%s, side=%s, pos=(%.1f, %.1f)", 
-                enemy.id, data.enemyType, side, enemy.x, enemy.y))
-        else
-            logger.error("Failed to create enemy of type: " .. data.enemyType)
-        end
-    end
+    self.messageHandler:handleMessage(client, message)
 end
 
 function GameServer:removeClient(client)
@@ -307,8 +199,6 @@ function GameServer:removeClient(client)
     
     logger.info("Client disconnected:", side)
 end
-
-
 
 
 function GameServer:isValidTowerPlacement(data)
