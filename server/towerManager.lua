@@ -10,14 +10,14 @@ function TowerManager:new(config)
         tileSize = config.tileSize or 32,
         updateInterval = 0.05,
         grid = SpatialGrid.getInstance(),
-        lastAttackTimes = {}
+        lastAttackTimes = {},
+        factory = TowerFactory
     }
     setmetatable(instance, { __index = self })
     return instance
 end
 
 function TowerManager:createTower(towerData)
-    print(towerData.towerType)
      local newTower = TowerFactory:createTower(
                 towerData.towerType,
                 towerData.x,

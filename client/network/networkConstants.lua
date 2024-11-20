@@ -10,7 +10,8 @@ local NetworkMessages = {
         ENEMY_ATTACK = "enemyAttack",
         ENEMY_START_ATTACK = "enemyStartAttack",
         BASE_TAKE_DAMAGE = "baseTakeDamage",
-        BASE_DESTROYED = "baseDestroyed"
+        BASE_DESTROYED = "baseDestroyed",
+        GOLD_UPDATE = "goldUpdate",
     },
     
     -- Client -> Server messages

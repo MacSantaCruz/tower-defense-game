@@ -9,6 +9,14 @@ local MessageHandlers = {
         
         network.playerSide = data.side
         network.gameState = data.gameState
+
+        if playerManager and data.gameState.gold then
+            local player = playerManager.players[data.side]
+            if player then
+                player.gold = data.gameState.gold
+            end
+        end
+
         playerManager.baseManager:initializeBases(data.gameState.basePositions)
         _G.LOGGER = LOGGER.getLogger(network.playerSide)
         
@@ -79,6 +87,16 @@ local MessageHandlers = {
                 player.enemyManager:removeEnemy(data.enemyId)
             end
             network.gameState.enemies[data.enemyId] = nil
+        end
+    end,
+
+    [NetworkConstants.SERVER.GOLD_UPDATE] = function(network, data)
+        -- Update the player's gold instead of network
+        if playerManager then
+            local player = playerManager.players[network.playerSide]
+            if player then
+                player.gold = data.gold
+            end
         end
     end,
 

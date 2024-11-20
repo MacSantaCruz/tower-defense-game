@@ -180,6 +180,39 @@ function love.draw()
         performanceStats.enemyCount
     ), 10, 60)
 
+    -- Centered Gold Display
+    if Network.playerSide and playerManager.players[Network.playerSide] then
+        local player = playerManager.players[Network.playerSide]
+        
+        -- Set up gold display properties
+        love.graphics.setColor(1, 0.84, 0)  -- Gold color
+        local goldText = "Gold: " .. player.gold
+        local font = love.graphics.getFont()
+        local textWidth = font:getWidth(goldText)
+        
+        -- Draw gold background panel (optional)
+        love.graphics.setColor(0, 0, 0, 0.5)  -- Semi-transparent black
+        local padding = 20
+        local panelHeight = 40
+        love.graphics.rectangle(
+            'fill',
+            (love.graphics.getWidth() - textWidth) / 2 - padding,
+            0,
+            textWidth + padding * 2,
+            panelHeight
+        )
+        
+        -- Draw gold text
+        love.graphics.setColor(1, 0.84, 0)  -- Gold color
+        love.graphics.print(
+            goldText,
+            (love.graphics.getWidth() - textWidth) / 2,
+            (panelHeight - font:getHeight()) / 2
+        )
+        
+        love.graphics.setColor(1, 1, 1, 1)  -- Reset color
+    end
+
     performanceStats.drawTime = love.timer.getTime() - startTime
 end
 

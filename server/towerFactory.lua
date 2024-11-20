@@ -20,4 +20,9 @@ function TowerFactory:createTower(towerType, x, y, side, id)
     return tower
 end
 
+function TowerFactory:getTowerCost(towerType)
+    local TowerClass = self.towerTypes[towerType]
+    return TowerClass and TowerClass.cost
+end
+
 return TowerFactory

@@ -51,8 +51,20 @@ function MessageHandler:handlePlaceTower(client, data)
     data.side = self.server.clients[client].side
     logger.info("Creating Tower for side: ", self.server.clients[client].side)
     
+    local towerCost = self.server.towerManager.factory:getTowerCost(data.towerType)
+
+    -- Check if player has enough gold
+    if self.server.clients[client].gold < towerCost then
+        self.server:sendToClient(client, {
+            type = "placementFailed",
+            reason = "Insufficient gold"
+        })
+        return
+    end
+
     -- Validate tower placement
     if self.server:isValidTowerPlacement(data) then
+        self.server:modifyGold(client, -towerCost)
         local towerId = self.server:getNextId()
         local newTowerData = {
             towerType = data.towerType,

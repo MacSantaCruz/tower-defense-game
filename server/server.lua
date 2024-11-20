@@ -267,7 +267,8 @@ function GameServer:handleNewConnection(client)
     
     if side then
         self.clients[client] = {
-            side = side
+            side = side,
+            gold = 1000
         }
 
         -- Send initialization data to the new client
@@ -278,7 +279,8 @@ function GameServer:handleNewConnection(client)
                 enemies = self:getEnemies(),
                 towers = self:getTowers(),
                 nextEntityId = self.gameState.nextEntityId,
-                basePositions = self.mapConfig.basePositions
+                basePositions = self.mapConfig.basePositions,
+                gold = 1000
             }
         })
         
@@ -297,6 +299,21 @@ function GameServer:handleNewConnection(client)
         })
         client:close()
     end
+end
+
+function GameServer:modifyGold(client, amount)
+    if self.clients[client] then
+        self.clients[client].gold = self.clients[client].gold + amount
+        
+        -- Notify client of new gold amount
+        self:sendToClient(client, {
+            type = "goldUpdate",
+            gold = self.clients[client].gold
+        })
+        
+        return true
+    end
+    return false
 end
 
 function GameServer:getNextId()
