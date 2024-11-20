@@ -67,7 +67,28 @@ function GameServer:new()
     server.pendingEnemyUpdates = {}
     server.pendingTowerUpdates = {}
 
+    server.incomeConfig = {
+        amount = 50,        -- Base income amount
+        interval = 15,      -- Seconds between income payments
+        lastIncomeTime = 0  -- Track last income payment
+    }
+
+
     return server
+end
+
+
+function GameServer:updateIncome(currentTime)
+    -- Check if it's time for income
+    if currentTime - self.incomeConfig.lastIncomeTime >= self.incomeConfig.interval then
+        -- Give income to all connected players
+        for client, data in pairs(self.clients) do
+            self:modifyGold(client, self.incomeConfig.amount)
+        end
+        
+        -- Update last income time
+        self.incomeConfig.lastIncomeTime = currentTime
+    end
 end
 
 function GameServer:sendToClient(client, message)
@@ -116,6 +137,9 @@ function GameServer:update()
     local currentTime = socket.gettime()
     local dt = currentTime - (self.lastUpdateTime or currentTime)
     
+    -- Send income
+    self:updateIncome(currentTime)
+
     -- Get enemy updates from manager
     local enemyUpdates = self.enemyManager:update(dt)
     local towerUpdates = self.towerManager:update(dt, self.enemyManager.enemies)

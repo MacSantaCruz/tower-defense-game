@@ -156,11 +156,7 @@ local MessageHandlers = {
                         if update.type == NetworkConstants.UPDATE.ENEMY_DEATH then
                             LOGGER.info("[Network] Received death update for Enemy:", update.id)
                             network.gameState.enemies[update.id] = nil
-                            -- local player = playerManager.players[enemy.targetSide]
-                            -- if player then
-                            --     player.enemyManager:removeEnemy(update.id)
-                            -- end
-                                                local enemy = nil
+                            local enemy = nil
                             for _, player in pairs(playerManager.players) do
                                 enemy = player.enemyManager.enemies[update.id]
                                 if enemy then
