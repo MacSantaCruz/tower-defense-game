@@ -7,7 +7,7 @@ local ClientBaseManager = {
 }
 ClientBaseManager.__index = ClientBaseManager
 
-local BASE_SIZE = 64
+local BASE_SIZE = 256
 
 function ClientBaseManager:new(side)
     local instance = setmetatable({}, self)
@@ -69,28 +69,32 @@ function ClientBaseManager:draw()
                 end
             end
             
+            -- Draw larger base
             love.graphics.rectangle("fill", 
                 base.position.x - base.size/2,
                 base.position.y - base.size/2,
                 base.size, base.size)
             
-            -- Health bar
+            -- Larger health bar to match base size
             local healthBarWidth = base.size
-            local healthBarHeight = 8
+            local healthBarHeight = 16  -- Made health bar taller too
             local healthPercentage = base.health / base.maxHealth
             
+            -- Health bar background
             love.graphics.setColor(0.3, 0.3, 0.3, 1)
             love.graphics.rectangle("fill",
                 base.position.x - healthBarWidth/2,
-                base.position.y - base.size/2 - healthBarHeight - 5,
+                base.position.y - base.size/2 - healthBarHeight - 10,  -- Moved up a bit more
                 healthBarWidth, healthBarHeight)
             
+            -- Health bar fill
             love.graphics.setColor(0.2, 0.8, 0.2, 1)
             love.graphics.rectangle("fill",
                 base.position.x - healthBarWidth/2,
-                base.position.y - base.size/2 - healthBarHeight - 5,
+                base.position.y - base.size/2 - healthBarHeight - 10,
                 healthBarWidth * healthPercentage, healthBarHeight)
             
+            -- Restore color
             love.graphics.setColor(r, g, b, a)
         end
     end
