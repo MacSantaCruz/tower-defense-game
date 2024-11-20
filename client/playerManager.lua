@@ -1,10 +1,11 @@
--- playerManager.lua
+local ClientBaseManager = require "baseManager"
 local PlayerManager = {}
 PlayerManager.__index = PlayerManager
 
 function PlayerManager:new()
     local instance = setmetatable({}, self)
     instance.players = {}
+    instance.baseManager = ClientBaseManager:new()
     return instance
 end
 
@@ -49,6 +50,39 @@ function PlayerManager:updateMouseHover(worldX, worldY)
             }
         end
     end
+end
+
+function PlayerManager:setBasePositions(positions)
+    self.basePositions = positions
+end
+
+function PlayerManager:drawBases()
+    if not self.basePositions then return end
+    
+    -- Save current color
+    local r, g, b, a = love.graphics.getColor()
+    
+    love.graphics.setColor(0.7, 0.7, 0.7, 1)  -- Gray color for placeholder
+    local baseSize = 64  -- 2x2 tiles
+    
+    -- Draw left base in world coordinates
+    if self.basePositions.left then
+        love.graphics.rectangle("fill", 
+            self.basePositions.left.x - baseSize/2,
+            self.basePositions.left.y - baseSize/2,
+            baseSize, baseSize)
+    end
+    
+    -- Draw right base in world coordinates
+    if self.basePositions.right then
+        love.graphics.rectangle("fill",
+            self.basePositions.right.x - baseSize/2,
+            self.basePositions.right.y - baseSize/2,
+            baseSize, baseSize)
+    end
+    
+    -- Restore original color
+    love.graphics.setColor(r, g, b, a)
 end
 
 return PlayerManager

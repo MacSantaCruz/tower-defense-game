@@ -7,7 +7,11 @@ local MapConfig = {
         left = {},
         right = {}
     },
-    paths = {}
+    paths = {},
+    basePositions = {
+        left = nil,
+        right = nil
+    }
 }
 
 function MapConfig:SetupMap()
@@ -75,6 +79,16 @@ function MapConfig:SetupEnemyPaths(mapData)
                         name = object.name .. "_mirrored"
                     })
                 end
+            elseif object.shape == "point" and object.name == "end" then
+                self.basePositions.left = {
+                    x = object.x,
+                    y = object.y
+                }
+                
+                self.basePositions.right = {
+                    x = self.width * self.tileSize - object.x,
+                    y = object.y
+                }
             end
         end
     end

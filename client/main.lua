@@ -28,7 +28,7 @@ function love.load()
     end
 
     -- Connect to server (could be localhost for testing or a remote server)
-    local serverHost = "localhost" -- "24.199.101.226"  -- "localhost"-- Change this for remote server
+    local serverHost =  "localhost" -- "24.199.101.226"  -- "localhost"-- Change this for remote server
     local serverPort = 12345
     
     success = Network:connect(serverHost, serverPort)
@@ -102,7 +102,7 @@ function love.update(dt)
         rightPlayer.enemyManager:update(dt)
         leftPlayer.towerManager:update(dt, camera, leftPlayer.enemyManager.enemies)
         rightPlayer.towerManager:update(dt, camera, rightPlayer.enemyManager.enemies)
-
+        playerManager.baseManager:update(dt)
 
         performanceStats.updateTime = love.timer.getTime() - startTime
         performanceStats.frameTime = love.timer.getTime() - performanceStats.lastTime
@@ -146,6 +146,7 @@ function love.draw()
         player.enemyManager:draw()
     end
     
+    playerManager.baseManager:draw()
     
     love.graphics.pop()
     
@@ -178,7 +179,7 @@ function love.draw()
         performanceStats.drawTime * 1000,
         performanceStats.enemyCount
     ), 10, 60)
-    
+
     performanceStats.drawTime = love.timer.getTime() - startTime
 end
 

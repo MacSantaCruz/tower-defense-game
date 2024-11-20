@@ -7,6 +7,7 @@ local ServerTowerManager = require "./towerManager"
 local logger = require "logger"
 local MapConfig = require "utils.mapConfig"
 local MessageHandler = require "utils.messageHandler"
+local BaseManager = require "./baseManager"
 
 io.stdout:setvbuf('no')  -- Disable output buffering
 io.stderr:setvbuf('no')  -- Disable error buffering
@@ -29,6 +30,10 @@ function GameServer:new()
     server.mapConfig = MapConfig
     server.mapConfig:SetupMap()
     server.messageHandler = MessageHandler:new(server)
+
+    server.baseManager = BaseManager:new({
+        basePositions = server.mapConfig.basePositions
+    })
 
     -- Initialize enemy manager with paths and spawn points
     server.enemyManager = ServerEnemyManager:new({
@@ -271,7 +276,8 @@ function GameServer:handleNewConnection(client)
             gameState = {
                 enemies = self:getEnemies(),
                 towers = self:getTowers(),
-                nextEntityId = self.gameState.nextEntityId
+                nextEntityId = self.gameState.nextEntityId,
+                basePositions = self.mapConfig.basePositions
             }
         })
         

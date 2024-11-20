@@ -9,6 +9,7 @@ local MessageHandlers = {
         
         network.playerSide = data.side
         network.gameState = data.gameState
+        playerManager.baseManager:initializeBases(data.gameState.basePositions)
         _G.LOGGER = LOGGER.getLogger(network.playerSide)
         
         if playerManager then
