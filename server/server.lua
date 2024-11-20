@@ -38,7 +38,8 @@ function GameServer:new()
     -- Initialize enemy manager with paths and spawn points
     server.enemyManager = ServerEnemyManager:new({
         spawnPoints = server.mapConfig.spawnPoints,
-        tileSize = server.mapConfig.tileSize
+        tileSize = server.mapConfig.tileSize,
+        baseManager = server.baseManager
     })
 
     server.towerManager = ServerTowerManager:new({

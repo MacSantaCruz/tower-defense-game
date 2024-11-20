@@ -78,8 +78,14 @@ function ClientEnemyManager:updateEnemy(id, data)
             self:onEnemyDamaged(enemy)
         end
         
-        if data.x and data.y then
-            -- Clear movement cache when receiving new position
+        if data.isAttacking ~= nil then
+            enemy.isAttacking = data.isAttacking
+            enemy.targetSide = data.targetSide
+            LOGGER.info("Enemy attack state updated:", id, "isAttacking:", enemy.isAttacking)
+        end
+        
+        -- Update position only if we're not attacking
+        if not enemy.isAttacking and data.x and data.y then
             if enemy.lastCacheKey then
                 self.moveCache[enemy.lastCacheKey] = nil
             end
@@ -165,7 +171,33 @@ function ClientEnemyManager:draw()
     love.graphics.setColor(1, 1, 1, 1)
     
     for _, enemy in pairs(self.enemies) do
+
         enemy:draw()
+
+        -- Draw attack indicator if attacking
+        if enemy.isAttacking then
+            -- Draw attack waves/rings that pulse
+            local attackScale = math.sin(1.5 * math.pi * 4) * 0.5 + 0.5
+            love.graphics.setColor(1, 0, 0, attackScale * 0.5)
+            
+            -- Draw concentric circles
+            for i = 1, 3 do
+                local radius = (20 + i * 10) * attackScale
+                love.graphics.circle("line", enemy.x, enemy.y, radius)
+            end
+            
+            -- Draw small lightning bolts or attack symbols
+            local boltLength = 15
+            local angles = {0, math.pi/2, math.pi, 3*math.pi/2}
+            love.graphics.setColor(1, 0, 0, attackScale)
+            for _, angle in ipairs(angles) do
+                local x1 = enemy.x + math.cos(angle) * boltLength
+                local y1 = enemy.y + math.sin(angle) * boltLength
+                local x2 = enemy.x + math.cos(angle) * (boltLength * 1.5)
+                local y2 = enemy.y + math.sin(angle) * (boltLength * 1.5)
+                love.graphics.line(x1, y1, x2, y2)
+            end
+        end
         
         -- Optional: Draw health bar
         local healthPercentage = enemy.health / enemy.maxHealth

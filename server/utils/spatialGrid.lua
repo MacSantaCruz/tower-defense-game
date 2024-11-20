@@ -44,10 +44,7 @@ function SpatialGrid.getInstance()
             -- Track entity's current cell
             self.entityPositions[entity.id] = self:getCellKey(entity.x, entity.y)
             self.stats.totalEntities = self.stats.totalEntities + 1
-            
-            -- Debug output
-            print(string.format("Inserted entity %d at cell %s", 
-                entity.id, self.entityPositions[entity.id]))
+
         end
         
         SpatialGrid.instance.remove = function(self, entity)

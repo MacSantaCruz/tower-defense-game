@@ -121,32 +121,57 @@ local MessageHandlers = {
             end
         end
 
-        -- Handle enemy updates
+         -- Handle enemy updates
         if data.enemyUpdates then
             for _, update in ipairs(data.enemyUpdates) do
-                local enemy = network.gameState.enemies[update.id]
-                if enemy then
-                    if update.type == NetworkConstants.UPDATE.ENEMY_DEATH then
-                        LOGGER.info("[Network] Received death update for Enemy:", update.id)
-                        local deadEnemy = network.gameState.enemies[update.id]
-                        if deadEnemy then
+                LOGGER.info("processing update: ", update.type)
+                if update.type == "baseTakeDamage" then
+                    LOGGER.info("[Network] Base taking damage:", update.side, update.damage, update.currentHealth)
+                    -- Update both players since everyone needs to see base health
+                    playerManager.baseManager:takeDamage(update.side,update.damage, update.currentHealth)
+                elseif update.type == "baseDestroyed" then
+                    LOGGER.info("[Network] Base destroyed:", update.side)
+                    -- Update both players since everyone needs to see base destruction
+                    LOGGER.info("BASE DESTROYED")
+                else
+                    local enemy = network.gameState.enemies[update.id]
+                    if enemy then
+                        if update.type == NetworkConstants.UPDATE.ENEMY_DEATH then
+                            LOGGER.info("[Network] Received death update for Enemy:", update.id)
                             network.gameState.enemies[update.id] = nil
-                            local player = playerManager.players[deadEnemy.side]
+                            local player = playerManager.players[enemy.targetSide]
                             if player then
-                                LOGGER.info("[Network] Removing Enemy:", update.id, " From player:", player.side)
                                 player.enemyManager:removeEnemy(update.id)
                             end
-                        end
-                    else
-                        -- Handle movement updates
-                        if enemy and update then
-                            -- Update network state
+                        elseif update.type == "enemyStartAttack" then
+                            LOGGER.info("[Network] Enemy starting attack:", update.id)
+                            enemy.isAttacking = true
+                            enemy.targetSide = update.targetSide
+                            
+                            local player = playerManager.players[enemy.targetSide]
+                            if player then
+                                player.enemyManager:updateEnemy(update.id, {
+                                    isAttacking = true,
+                                    targetSide = update.targetSide,
+                                    x = update.x,
+                                    y = update.y
+                                })
+                            end
+                        elseif update.type == "enemyAttack" then
+                            LOGGER.info("[Network] Enemy attacking:", update.id)
+                            local player = playerManager.players[update.targetSide]
+                            if player then
+                                player.enemyManager:updateEnemy(update.id, {
+                                    isAttacking = true,
+                                    targetSide = update.targetSide
+                                })
+                            end
+                        elseif update.type == "movement" then
                             enemy.x = update.x
                             enemy.y = update.y
                             enemy.direction = update.direction
                             enemy.health = update.health
                             
-                            -- Update visual state
                             local player = playerManager.players[enemy.targetSide]
                             if player then
                                 player.enemyManager:updateEnemyPosition(
@@ -155,8 +180,8 @@ local MessageHandlers = {
                                     update.y,
                                     update.direction,
                                     update.health,
-                                    update.targetx,
-                                    update.targety
+                                    update.targetX,
+                                    update.targetY
                                 )
                             end
                         end

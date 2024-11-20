@@ -42,28 +42,29 @@ function ServerBaseManager:new(config)
 end
 
 function ServerBaseManager:takeDamage(side, amount)
+    updates = {}
     local base = self.bases[side]
     if not base then return end
     
     base.health = math.max(0, base.health - amount)
     
-    local update = {
+    table.insert(updates, {
         type = "baseTakeDamage",
         side = side,
         damage = amount,
         currentHealth = base.health
-    }
+    })
     
     -- If base is destroyed, remove from spatial grid
     if base.health <= 0 then
         self.grid:remove(base)
-        table. (updates, {
+        table.insert(updates, {
             type = "baseDestroyed",
             side = side
         })
     end
-    
-    return update
+    print('SENDING BASE UPDATES')
+    return updates
 end
 
 function ServerBaseManager:getBasePositions()

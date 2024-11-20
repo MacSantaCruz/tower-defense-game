@@ -14,7 +14,15 @@ local Enemy = {
 
     -- Collission related
     radius = 16,  -- Half of the 32px sprite size
-    dead = false  -- Track if enemy is destroyed
+    dead = false,  -- Track if enemy is destroyed
+
+    damage = 10,         -- Base damage per attack
+    attackRange = 50,    -- Range at which enemy can attack base
+    attackRate = 1,      -- Attacks per second
+    isAttacking = false, -- Current attack state
+    attackTimer = 0,     -- Timer for attack cooldown
+    targetSide = nil,    -- Which side this enemy is targeting
+    side = nil
 }
 
 function Enemy:new(x, y, properties)

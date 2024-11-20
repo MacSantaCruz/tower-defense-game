@@ -7,6 +7,10 @@ local NetworkMessages = {
         ENEMY_SPAWNED = "enemySpawned",
         ENEMY_DIED = "enemyDied",
         GAME_UPDATES = "gameUpdates",
+        ENEMY_ATTACK = "enemyAttack",
+        ENEMY_START_ATTACK = "enemyStartAttack",
+        BASE_TAKE_DAMAGE = "baseTakeDamage",
+        BASE_DESTROYED = "baseDestroyed"
     },
     
     -- Client -> Server messages
