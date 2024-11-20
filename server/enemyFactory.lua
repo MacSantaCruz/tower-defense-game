@@ -23,6 +23,11 @@ function EnemyFactory:spawnEnemy(enemyType, side, x, y, id)
     return enemy
 end
 
+function EnemyFactory:getEnemyCost(enemyType)
+    local EnemyClass = self.enemyTypes[enemyType]
+    return EnemyClass.cost
+end
+
 return EnemyFactory
 
     

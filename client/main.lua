@@ -203,14 +203,14 @@ function love.draw()
         )
         
         -- Draw gold text
-        love.graphics.setColor(1, 0.84, 0)  -- Gold color
+        love.graphics.setColor(1, 0.84, 0) 
         love.graphics.print(
             goldText,
             (love.graphics.getWidth() - textWidth) / 2,
             (panelHeight - font:getHeight()) / 2
         )
         
-        love.graphics.setColor(1, 1, 1, 1)  -- Reset color
+        love.graphics.setColor(1, 1, 1, 1) 
     end
 
     performanceStats.drawTime = love.timer.getTime() - startTime

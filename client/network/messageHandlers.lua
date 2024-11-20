@@ -142,7 +142,6 @@ local MessageHandlers = {
          -- Handle enemy updates
         if data.enemyUpdates then
             for _, update in ipairs(data.enemyUpdates) do
-                LOGGER.info("processing update: ", update.type)
                 if update.type == "baseTakeDamage" then
                     LOGGER.info("[Network] Base taking damage:", update.side, update.damage, update.currentHealth)
                     -- Update both players since everyone needs to see base health
@@ -157,9 +156,22 @@ local MessageHandlers = {
                         if update.type == NetworkConstants.UPDATE.ENEMY_DEATH then
                             LOGGER.info("[Network] Received death update for Enemy:", update.id)
                             network.gameState.enemies[update.id] = nil
-                            local player = playerManager.players[enemy.targetSide]
-                            if player then
-                                player.enemyManager:removeEnemy(update.id)
+                            -- local player = playerManager.players[enemy.targetSide]
+                            -- if player then
+                            --     player.enemyManager:removeEnemy(update.id)
+                            -- end
+                                                local enemy = nil
+                            for _, player in pairs(playerManager.players) do
+                                enemy = player.enemyManager.enemies[update.id]
+                                if enemy then
+                                    LOGGER.info("Found enemy in player manager, removing:", update.id)
+                                    player.enemyManager:removeEnemy(update.id)
+                                    break
+                                end
+                            end
+                            
+                            if not enemy then
+                                LOGGER.error("Could not find enemy to remove:", update.id)
                             end
                         elseif update.type == "enemyStartAttack" then
                             LOGGER.info("[Network] Enemy starting attack:", update.id)

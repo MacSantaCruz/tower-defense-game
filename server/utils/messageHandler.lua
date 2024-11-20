@@ -102,6 +102,20 @@ function MessageHandler:handleSpawnEnemy(client, data)
     logger.info('Got Spawn Enemy in Server')
     local side = data.targetSide
     logger.info('Got spawn for side: ', side)
+
+    local enemyCost = self.server.enemyManager.factory:getEnemyCost(data.enemyType)
+
+    local playerGold = self.server.clients[client].gold
+    if not playerGold or playerGold < enemyCost then
+        self.server:sendToClient(client, {
+            type = "spawnFailed",
+            reason = "Insufficient gold"
+        })
+        return
+    end
+
+    self.server:modifyGold(client, -enemyCost)
+
     -- Get next available ID
     local enemyId = self.server:getNextId()
     

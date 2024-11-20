@@ -39,7 +39,17 @@ function GameServer:new()
     server.enemyManager = ServerEnemyManager:new({
         spawnPoints = server.mapConfig.spawnPoints,
         tileSize = server.mapConfig.tileSize,
-        baseManager = server.baseManager
+        baseManager = server.baseManager,
+        onEnemyDeath = function(enemy)
+            -- Find the client who should receive the reward
+            for client, data in pairs(server.clients) do
+                if data.side == enemy.targetSide then
+                    -- Reward the defender for killing the enemy
+                    server:modifyGold(client, enemy.killValue)
+                    break
+                end
+            end
+        end
     })
 
     server.towerManager = ServerTowerManager:new({

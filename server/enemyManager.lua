@@ -13,6 +13,9 @@ function ServerEnemyManager:new(config)
     manager.tileSize = config.tileSize
     manager.grid = SpatialGrid.getInstance()
     manager.baseManager = config.baseManager
+    manager.factory = ServerEnemyFactory
+    manager.onEnemyDeath = config.onEnemyDeath
+
     return manager
 end
 
@@ -36,11 +39,18 @@ function ServerEnemyManager:update(dt)
     
     for id, enemy in pairs(self.enemies) do
         if enemy.health <= 0 then
+            -- Find the client who should receive the reward (the one being attacked)
+            -- TODO: idk about this having access to the self.server
+           if self.onEnemyDeath then
+                self.onEnemyDeath(enemy)
+            end
+            
             self.grid:remove(enemy)
             self.enemies[id] = nil
             table.insert(updates, {
                 id = enemy.id,
-                type = 'enemyDied'
+                type = 'enemyDied',
+                targetSide = enemy.targetSide
             })
         else
             if enemy.isAttacking then

@@ -22,7 +22,12 @@ local Enemy = {
     isAttacking = false, -- Current attack state
     attackTimer = 0,     -- Timer for attack cooldown
     targetSide = nil,    -- Which side this enemy is targeting
-    side = nil
+    side = nil,
+
+    --Economy Values
+    cost = 50,
+    killValue = 30
+
 }
 
 function Enemy:new(x, y, properties)
