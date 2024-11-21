@@ -1,4 +1,3 @@
--- projectile.lua
 local Projectile = {
     x = 0,
     y = 0,
@@ -8,7 +7,8 @@ local Projectile = {
     dead = false,
     color = {1, 1, 0, 1},  -- Yellow by default
     lifetime = 2,          -- Maximum lifetime in seconds
-    timeAlive = 0         -- Track how long projectile has existed
+    timeAlive = 0,        -- Track how long projectile has existed
+    hasHit = false       -- Track if we've already registered a hit
 }
 
 function Projectile:new(properties)
@@ -27,7 +27,7 @@ function Projectile:update(dt)
     end
 
     -- Check if target is gone or dead
-    if not self.target or self.target.dead then
+    if not self.target or (self.target.dead and self.target.dead == true) then
         self.dead = true
         return
     end
@@ -37,10 +37,16 @@ function Projectile:update(dt)
     local dy = self.target.y - self.y
     local distance = math.sqrt(dx * dx + dy * dy)
     
-    -- Only hit if we're very close to the target
-    if distance < 5 then
-        self.target:takeDamage(self.damage)
+    -- Only hit if we're very close to the target and haven't registered a hit yet
+    if distance < 5 and not self.hasHit then
+        -- Mark that we've hit to prevent multiple hits
+        self.hasHit = true
         self.dead = true
+        
+        -- Visual effect on hit (optional)
+        if self.onHit then
+            self:onHit()
+        end
     else
         -- Move towards target at specified speed
         local moveX = (dx / distance) * self.speed * dt
@@ -58,6 +64,12 @@ function Projectile:draw()
         love.graphics.circle("fill", self.x, self.y, self.radius)
         love.graphics.setColor(r, g, b, a)
     end
+end
+
+-- Optional: Add hit effect
+function Projectile:onHit()
+    -- You can add visual effects here like particles
+    -- or play a sound effect when the projectile hits
 end
 
 return Projectile

@@ -251,65 +251,90 @@ function GameServer:removeClient(client)
     logger.info("Client disconnected:", side)
 end
 
-
+--TODO: Audit this, I'm pretty sure this is all messed up and doesn't need to be this complicated
 function GameServer:isValidTowerPlacement(data)
-    
+    logger.info("Checking Valid Placement Server")
+    logger.info(string.format("Raw placement data - X: %d, Y: %d, Side: %s", 
+        data.x, data.y, data.side))
+
     -- Check basic data validity
     if not data.x or not data.y or not data.towerType then
         logger.error("Missing basic data")
         return false
     end
+    local checkX = data.x
+    -- Convert to tile coordinates first
+    local tileX = math.floor(checkX / self.mapConfig.tileSize)
+    if data.side == "right" then
+        checkX = data.x - self.mapConfig.originalWidth
+        tileX = math.floor(checkX / self.mapConfig.tileSize) 
+    end
+
+    local tileY = math.floor(data.y / self.mapConfig.tileSize)
+
+    logger.info(string.format("Converted to tile coordinates - TileX: %d, TileY: %d", 
+        tileX, tileY))
     
-    -- Convert to tile coordinates
-    local tileX = math.floor(data.x / self.mapConfig.tileSize) + 1
-    local tileY = math.floor(data.y / self.mapConfig.tileSize) + 1
-    
-    local towerRadius = self.mapConfig.tileSize / 2
-    
-    for _, tree in ipairs(self.mapConfig.trees[data.side]) do
-        -- Calculate the closest point on the rectangle to the tower's center
-        local closestX = math.max(tree.x, math.min(data.x, tree.x + tree.width))
-        local closestY = math.max(tree.y, math.min(data.y, tree.y + tree.height))
-        
-        -- Calculate distance from closest point to tower center
-        local dx = data.x - closestX
-        local dy = data.y - closestY
-        local distance = math.sqrt(dx * dx + dy * dy)
-        
-        -- If distance is less than tower radius, there's a collision
-        if distance < towerRadius then
-            return false
+    -- Check all tiles the tower will occupy (2x2 area)
+    for offsetY = 0, 1 do
+        for offsetX = 0, 1 do
+            local checkTileX = tileX + offsetX
+            local checkTileY = tileY + offsetY
+            
+            -- For right side tiles, calculate the mirrored position for path checking
+            local pathCheckX = checkTileX
+            if data.side == "right" then
+                -- Calculate the equivalent position in the original map
+                pathCheckX = self.mapConfig.width - checkTileX - 1
+            end
+            
+            logger.info(string.format("Checking tile - X: %d, Y: %d, PathCheckX: %d", 
+                checkTileX, checkTileY, pathCheckX))
+            
+            -- Check map bounds relative to a single map width
+            if pathCheckX < 0 or checkTileY < 0 or
+               pathCheckX >= self.mapConfig.width or
+               checkTileY >= self.mapConfig.height then
+                logger.info(string.format("Failed out of bounds - PathX: %d, Y: %d, MapWidth: %d, MapHeight: %d",
+                    pathCheckX, checkTileY, self.mapConfig.width, self.mapConfig.height))
+                return false
+            end
+            
+            -- Check if on path
+            if self.mapConfig.pathTiles[checkTileY + 1] and 
+               self.mapConfig.pathTiles[checkTileY + 1][pathCheckX + 1] then
+                logger.info("Failed path check")
+                return false
+            end
         end
-    end
-    -- Check map bounds
-    if tileX < 1 or tileX > self.mapConfig.width or
-       tileY < 1 or tileY > self.mapConfig.height then
-        return false
-    end
-    
-    -- Check if on path using mapConfig.pathTiles
-    if self.mapConfig.pathTiles[tileY] and 
-       self.mapConfig.pathTiles[tileY][tileX] then
-        return false
     end
     
     -- Check collision with other towers
     for _, tower in pairs(self:getTowers()) do
-        local dx = tower.x - data.x
+        local towerCheckX = tower.x
+        if data.side == "right" then
+            towerCheckX = tower.x - self.mapConfig.originalWidth
+        end
+        
+        local dx = towerCheckX - checkX
         local dy = tower.y - data.y
         local distance = math.sqrt(dx * dx + dy * dy)
-        if distance < self.mapConfig.tileSize * 2 then
+        if distance < self.mapConfig.tileSize * 1.5 then
+            logger.info("Failed tower collision check")
             return false
         end
     end
     
-    -- Check if player is placing on their side
-    local isLeftSide = data.x < (self.mapConfig.width * self.mapConfig.tileSize / 2)
-    if (data.side == "left" and not isLeftSide) or
-       (data.side == "right" and isLeftSide) then
+    -- Check if player is placing on their side (using original coordinates)
+    if data.side == "right" and data.x < ((self.mapConfig.originalWidth) * self.mapConfig.tileSize) then
+        logger.info("Right player trying to place on left side")
+        return false
+    elseif data.side == "left" and data.x >= (self.mapConfig.originalWidth * self.mapConfig.tileSize) then
+        logger.info("Left player trying to place on right side")
         return false
     end
     
+    logger.info("Placement validation passed")
     return true
 end
 

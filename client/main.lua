@@ -229,13 +229,23 @@ function love.mousepressed(x, y, button)
             
             local player = playerManager.players[Network.playerSide]
             if player and player.towerManager.selectedTowerType then
-                -- Only check if placement would be valid locally
-                local gridX = math.floor(worldX / tileSize) * tileSize + tileSize/2
-                local gridY = math.floor(worldY / tileSize) * tileSize + tileSize/2
+                -- Use the same grid snapping logic as the ghost placement
+                local tileX = math.floor(worldX / tileSize)
+                local tileY = math.floor(worldY / tileSize)
+                
+                -- Center on tile
+                local gridX = tileX * tileSize + tileSize
+                local gridY = tileY * tileSize + tileSize
+                
+                -- Check if the placement would be valid
                 local isValidPlacement = player.towerManager:isValidPlacement(gridX, gridY)
-
+                
                 if isValidPlacement then
-                    Network:placeTower(worldX, worldY, player.towerManager.selectedTowerType)
+                    LOGGER.info(string.format("Attempting to place tower at grid pos: %d, %d", gridX, gridY))
+                    -- Send original coordinates to server
+                    Network:placeTower(gridX, gridY, player.towerManager.selectedTowerType)
+                else
+                    LOGGER.info("Invalid placement position")
                 end
             end
         else

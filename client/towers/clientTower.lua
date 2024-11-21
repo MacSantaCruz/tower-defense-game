@@ -4,7 +4,8 @@ local ClientTower = {
     sprite = nil,
     color = {1, 1, 1, 1},
     tileSize = 32,
-    tilesWide = 2,
+    tilesWide = 2,  
+    tilesHigh = 2, 
     currentFrame = 1,
     animTimer = 0,
     frameDelay = 0.2,
@@ -40,13 +41,17 @@ end
 
 function ClientTower:setupAnimation(numFrames)
     self.frames = {}
+    local spriteWidth = 70    -- Width of each frame
+    local spriteHeight = 130  -- Height of each frame
+    
     for i = 0, numFrames - 1 do
         local quad = love.graphics.newQuad(
-            i * 32,
-            0,
-            32,
-            32,
-            self.sprite:getDimensions()
+            i * spriteWidth,  -- X position in sprite sheet
+            0,               -- Y position (assuming single row)
+            spriteWidth,     -- Width of each frame
+            spriteHeight,    -- Height of each frame
+            spriteWidth * numFrames,  -- Total width of sprite sheet
+            spriteHeight     -- Total height of sprite sheet
         )
         table.insert(self.frames, quad)
     end
@@ -63,18 +68,16 @@ function ClientTower:update(dt)
     end
     
     -- Update animation
-    if self.isFiring then
-        self.animTimer = self.animTimer + dt
-        if self.animTimer >= self.frameDelay then
-            self.animTimer = self.animTimer - self.frameDelay
-            self.currentFrame = self.currentFrame + 1
-            
-            -- Complete one animation cycle
-            if self.currentFrame > #self.frames then
-                self.currentFrame = 1
-                self.isFiring = false
-                self.animTimer = 0
-            end
+    self.animTimer = self.animTimer + dt
+    if self.animTimer >= self.frameDelay then
+        self.animTimer = self.animTimer - self.frameDelay
+        self.currentFrame = self.currentFrame + 1
+        
+        -- Complete one animation cycle
+        if self.currentFrame > #self.frames then
+            self.currentFrame = 1
+            self.isFiring = false
+            self.animTimer = 0
         end
     end
 end
@@ -83,10 +86,10 @@ function ClientTower:draw()
     local r, g, b, a = love.graphics.getColor()
     
     if self.sprite then
-        local width = 32
-        local height = 32
-        local scaleX = (self.tileSize * self.tilesWide) / width
-        local scaleY = (self.tileSize * self.tilesWide) / height
+        local spriteWidth = 70   -- Actual sprite dimensions
+        local spriteHeight = 130
+        local scaleX = (self.tileSize * self.tilesWide) / spriteWidth
+        local scaleY = (self.tileSize * self.tilesHigh) / spriteHeight
         
         love.graphics.setColor(unpack(self.color))
         love.graphics.draw(
@@ -97,12 +100,17 @@ function ClientTower:draw()
             0,
             scaleX,
             scaleY,
-            width/2,
-            height/2
+            spriteWidth/2,  -- Center point
+            spriteHeight/2
         )
         love.graphics.setColor(1, 1, 1, 1)
     else
-        love.graphics.circle("fill", self.x, self.y, 15)
+        -- Fallback visualization for 2x2 tower
+        love.graphics.rectangle("fill", 
+            self.x - self.tileSize, 
+            self.y - self.tileSize, 
+            self.tileSize * 2, 
+            self.tileSize * 2)
     end
 
     -- Draw projectiles

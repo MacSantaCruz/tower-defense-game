@@ -1,7 +1,8 @@
 local MapConfig = {
     tileSize = 32,
-    width = 75 * 2,      
-    height = 56,      
+    width = 75 * 2,
+    originalWidth = 75,
+    height = 56,
     pathTiles = {},  
     spawnPoints = {
         left = {},

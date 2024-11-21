@@ -125,12 +125,21 @@ function Network:handleServerMessage(message)
 end
 
 function Network:placeTower(x, y, towerType)
-    if not Network.connected then
+    if not self.connected then
+        LOGGER.error("Not connected to server")
         return false, "Not connected to server"
     end
     
+    LOGGER.info(string.format("Network:placeTower - Sending placement request: x=%d, y=%d, type=%s", 
+        x, y, towerType))
+    
     local message = MessageConstructors[NetworkConstants.CLIENT.PLACE_TOWER](x, y, towerType)
-    LOGGER.info("Sending tower placement:", x, y, towerType)
+    
+    -- Log the constructed message
+    LOGGER.info("Constructed message:")
+    for k, v in pairs(message) do
+        LOGGER.info(string.format("  %s: %s", k, tostring(v)))
+    end
     
     return self:sendToServer(message)
 end
