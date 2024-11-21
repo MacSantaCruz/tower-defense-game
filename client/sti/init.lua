@@ -918,16 +918,15 @@ function Map:draw(tx, ty, sx, sy)
             layer.sy = nil
             
             -- Apply new transformation
-            if sx ~= 1 or sy ~= 1 then
-                -- Only apply width-based translation for tile layers
-                if layer.type == "tilelayer" then
-                    if sx < 0 then
-                        lg.translate(self.width * self.tilewidth, 0)
-                    end
-                    if sy < 0 then
-                        lg.translate(0, self.height * self.tileheight)
-                    end
+            if layer.type == "tilelayer" or layer.type == "objectgroup" then
+                if sx < 0 then
+                    lg.translate(self.width * self.tilewidth, 0)
                 end
+                if sy < 0 then
+                    lg.translate(0, self.height * self.tileheight)
+                end
+                lg.scale(sx, sy)
+            else
                 lg.scale(sx, sy)
             end
             

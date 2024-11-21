@@ -1,11 +1,9 @@
 -- enemy.lua
 local Enemy = {
-    -- Default properties
     health = 100,
     maxHealth = 100,
     speed = 50,
     armor = 0,
-    value = 10,  -- Money gained when killed
     
     -- Movement properties
     x = 0,
@@ -13,11 +11,11 @@ local Enemy = {
     direction = 0,
 
     -- Collission related
-    radius = 16,  -- Half of the 32px sprite size
+    radius = 32, 
     dead = false,  -- Track if enemy is destroyed
 
     damage = 10,         -- Base damage per attack
-    attackRange = 50,    -- Range at which enemy can attack base
+    attackRange = 180,    -- Range at which enemy can attack base
     attackRate = 1,      -- Attacks per second
     isAttacking = false, -- Current attack state
     attackTimer = 0,     -- Timer for attack cooldown

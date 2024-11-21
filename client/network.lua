@@ -136,17 +136,17 @@ function Network:placeTower(x, y, towerType)
 end
 
 
-function Network:spawnEnemy(spawnPointIndex, enemyType, targetSide)
+function Network:spawnEnemy(zoneSpawnIndex, enemyType, targetSide)
     if not Network.connected then
         return false, "Not connected to server"
     end
     
     local message = MessageConstructors[NetworkConstants.CLIENT.SPAWN_ENEMY](
-        spawnPointIndex,
+        zoneSpawnIndex,
         enemyType,
         targetSide
     )
-    LOGGER.info("Sending enemy spawn:", enemyType, "at point", spawnPointIndex)
+    LOGGER.info("Sending enemy spawn:", enemyType, "at point", zoneSpawnIndex)
     
     return self:sendToServer(message)
 end

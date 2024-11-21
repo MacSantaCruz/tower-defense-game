@@ -102,6 +102,7 @@ function MessageHandler:handleSpawnEnemy(client, data)
     logger.info('Got Spawn Enemy in Server')
     local side = data.targetSide
     logger.info('Got spawn for side: ', side)
+    logger.info('Spawn Point: ', data.zoneSpawnIndex)
 
     local enemyCost = self.server.enemyManager.factory:getEnemyCost(data.enemyType)
 
@@ -123,7 +124,7 @@ function MessageHandler:handleSpawnEnemy(client, data)
     local enemy = self.server.enemyManager:spawnEnemy({
         id = enemyId,
         enemyType = data.enemyType,
-        spawnPointIndex = data.spawnPointIndex,
+        zoneSpawnIndex = data.zoneSpawnIndex,
         side = side
     })
     

@@ -2,7 +2,6 @@
 local sti = require "sti"
 local camera = require "camera"
 local TowerManager = require "towerManager"
-local FastEnemy = require "./enemies/fastEnemy"
 local EnemyManager = require "enemyManager"
 local PlayerManager = require "./playerManager"
 local Network = require "network"
@@ -28,7 +27,7 @@ function love.load()
     end
 
     -- Connect to server (could be localhost for testing or a remote server)
-    local serverHost =  "localhost" -- "24.199.101.226"  -- "localhost"-- Change this for remote server
+    local serverHost = "localhost" --"24.199.101.226"  -- "localhost"-- Change this for remote server
     local serverPort = 12345
     
     success = Network:connect(serverHost, serverPort)
@@ -49,9 +48,9 @@ function love.load()
     })
 
     -- Load the map
-    gameMap = sti("maps/kek_3.lua")
-    if gameMap.layers["Paths"] then
-        gameMap.layers["Paths"].visible = false
+    gameMap = sti("maps/kekw.lua")
+    if gameMap.layers["Zones"] then
+        gameMap.layers["Zones"].visible = false
     end
     
     -- Window and map dimensions
@@ -259,14 +258,14 @@ function love.keypressed(key)
     elseif key == "3" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(1, "fighterEnemy", targetSide)
+        Network:spawnEnemy(1, "blobEnemy", targetSide)
     elseif key == "4" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(2, "fastEnemy", targetSide)
+        Network:spawnEnemy(2, "blobEnemy", targetSide)
     elseif key == "5" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(3, "fastEnemy", targetSide)
+        Network:spawnEnemy(3, "blobEnemy", targetSide)
     end
 end

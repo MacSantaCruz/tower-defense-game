@@ -37,7 +37,8 @@ function GameServer:new()
 
     -- Initialize enemy manager with paths and spawn points
     server.enemyManager = ServerEnemyManager:new({
-        spawnPoints = server.mapConfig.spawnPoints,
+        zones = server.mapConfig.zones,
+        spawnZones = server.mapConfig.spawnZones,
         tileSize = server.mapConfig.tileSize,
         baseManager = server.baseManager,
         onEnemyDeath = function(enemy)
@@ -263,6 +264,23 @@ function GameServer:isValidTowerPlacement(data)
     local tileX = math.floor(data.x / self.mapConfig.tileSize) + 1
     local tileY = math.floor(data.y / self.mapConfig.tileSize) + 1
     
+    local towerRadius = self.mapConfig.tileSize / 2
+    
+    for _, tree in ipairs(self.mapConfig.trees[data.side]) do
+        -- Calculate the closest point on the rectangle to the tower's center
+        local closestX = math.max(tree.x, math.min(data.x, tree.x + tree.width))
+        local closestY = math.max(tree.y, math.min(data.y, tree.y + tree.height))
+        
+        -- Calculate distance from closest point to tower center
+        local dx = data.x - closestX
+        local dy = data.y - closestY
+        local distance = math.sqrt(dx * dx + dy * dy)
+        
+        -- If distance is less than tower radius, there's a collision
+        if distance < towerRadius then
+            return false
+        end
+    end
     -- Check map bounds
     if tileX < 1 or tileX > self.mapConfig.width or
        tileY < 1 or tileY > self.mapConfig.height then
@@ -302,7 +320,7 @@ function GameServer:handleNewConnection(client)
     if side then
         self.clients[client] = {
             side = side,
-            gold = 1000
+            gold = 10000
         }
 
         -- Send initialization data to the new client
@@ -314,7 +332,7 @@ function GameServer:handleNewConnection(client)
                 towers = self:getTowers(),
                 nextEntityId = self.gameState.nextEntityId,
                 basePositions = self.mapConfig.basePositions,
-                gold = 1000
+                gold = 10000
             }
         })
         

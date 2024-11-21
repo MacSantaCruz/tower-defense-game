@@ -3,21 +3,119 @@ local SpatialGrid = require "utils.spatialGrid"
 
 local ServerEnemyManager = {
     enemies = {},
-    spawnPoints = {}, -- x, y, path, name
 }
 
 function ServerEnemyManager:new(config)
     local manager = setmetatable({}, { __index = self })
-    manager.spawnPoints = config.spawnPoints
+    manager.zones = config.zones
+    manager.spawnZones = config.spawnZones
     manager.enemies = {}
     manager.tileSize = config.tileSize
     manager.grid = SpatialGrid.getInstance()
     manager.baseManager = config.baseManager
     manager.factory = ServerEnemyFactory
     manager.onEnemyDeath = config.onEnemyDeath
-
+    print("Enemymanager spawnZone: ", manager.spawnZones)
     return manager
 end
+
+function ServerEnemyManager:getRandomPointInZone(zone)
+    return {
+        x = zone.x + math.random() * zone.width,
+        y = zone.y + math.random() * zone.height
+    }
+end
+
+function clampToZone(x, y, zone)
+    -- Clamp position to stay within zone boundaries
+    local clampedX = math.max(zone.x, math.min(x, zone.x + zone.width))
+    local clampedY = math.max(zone.y, math.min(y, zone.y + zone.height))
+    return clampedX, clampedY
+end
+
+ function getZoneIntersectionPoint(currentZone, nextZone)
+    -- Find which edges of the zones intersect
+    local intersectX, intersectY
+    local isHorizontalTransition = math.abs((currentZone.y + currentZone.height/2) - (nextZone.y + nextZone.height/2)) < 
+       math.abs((currentZone.x + currentZone.width/2) - (nextZone.x + nextZone.width/2))
+    
+    if isHorizontalTransition then
+        -- For horizontal paths, vary the Y position
+        local baseY = currentZone.y
+        local pathHeight = currentZone.height
+        -- Random position within the path, leaving a small margin from edges
+        local margin = pathHeight * 0.1 -- 10% margin from edges
+        intersectY = baseY + margin + math.random() * (pathHeight - margin * 2)
+        
+        if currentZone.x < nextZone.x then
+            -- Current zone is to the left
+            intersectX = currentZone.x + currentZone.width
+        else
+            -- Current zone is to the right
+            intersectX = currentZone.x
+        end
+    else
+        -- For vertical paths, vary the X position
+        local baseX = currentZone.x
+        local pathWidth = currentZone.width
+        -- Random position within the path, leaving a small margin from edges
+        local margin = pathWidth * 0.1 -- 10% margin from edges
+        intersectX = baseX + margin + math.random() * (pathWidth - margin * 2)
+        
+        if currentZone.y < nextZone.y then
+            -- Current zone is above
+            intersectY = currentZone.y + currentZone.height
+        else
+            -- Current zone is below
+            intersectY = currentZone.y
+        end
+    end
+    
+    return {
+        x = intersectX, 
+        y = intersectY,
+        isHorizontalTransition = isHorizontalTransition -- Save this for smooth transitions
+    }
+end
+
+local function moveAlongPath(enemy, targetX, targetY, dt, speed)
+    local dx = targetX - enemy.x
+    local dy = targetY - enemy.y
+    local distance = math.sqrt(dx * dx + dy * dy)
+    
+    if distance < 1 then
+        return 0, 0
+    end
+    
+    -- Calculate desired movement
+    local moveX = (dx / distance) * speed * dt
+    local moveY = (dy / distance) * speed * dt
+    
+    -- Calculate next position
+    local nextX = enemy.x + moveX
+    local nextY = enemy.y + moveY
+    
+    -- Clamp to current zone
+    local clampedX, clampedY = clampToZone(nextX, nextY, enemy.currentZone)
+    
+    -- If we're near a zone transition and next zone exists, also check if position is valid in next zone
+    if enemy.currentZone.nextZone then
+        local intersectPoint = getZoneIntersectionPoint(enemy.currentZone, enemy.currentZone.nextZone)
+        local distToIntersect = math.sqrt((enemy.x - intersectPoint.x)^2 + (enemy.y - intersectPoint.y)^2)
+        
+        if distToIntersect < speed * dt * 2 then
+            -- Check if position is valid in next zone
+            local nextZoneX, nextZoneY = clampToZone(nextX, nextY, enemy.currentZone.nextZone)
+            -- If position is valid in next zone, allow it
+            if nextZoneX == nextX and nextZoneY == nextY then
+                clampedX, clampedY = nextX, nextY
+            end
+        end
+    end
+    
+    return clampedX - enemy.x, clampedY - enemy.y
+end
+
 
 function ServerEnemyManager:checkBaseInRange(enemy)
     -- Get nearby entities from the spatial grid within attack range
@@ -40,7 +138,6 @@ function ServerEnemyManager:update(dt)
     for id, enemy in pairs(self.enemies) do
         if enemy.health <= 0 then
             -- Find the client who should receive the reward (the one being attacked)
-            -- TODO: idk about this having access to the self.server
            if self.onEnemyDeath then
                 self.onEnemyDeath(enemy)
             end
@@ -83,48 +180,107 @@ function ServerEnemyManager:update(dt)
             end
             
             if not enemy.isAttacking then
-                local currentPoint = enemy.pathPoints[enemy.currentPathIndex]
-                if currentPoint then
-                    local dx = currentPoint.x - enemy.x
-                    local dy = currentPoint.y - enemy.y
-                    local distance = math.sqrt(dx * dx + dy * dy)
+                if enemy.targetPoint then
+                    -- Move towards target point
+                    local moveX, moveY = moveAlongPath(
+                        enemy, 
+                        enemy.targetPoint.x, 
+                        enemy.targetPoint.y, 
+                        dt, 
+                        enemy.speed
+                    )
                     
-                    if distance > 5 then
-                        local moveX = (dx / distance) * enemy.speed * dt
-                        local moveY = (dy / distance) * enemy.speed * dt
-                        
-                        enemy.x = enemy.x + moveX
-                        enemy.y = enemy.y + moveY
-                        enemy.direction = math.atan2(dy, dx)
-                        self.grid:updateEntity(enemy)
-                        
-                        local targetBase = self:checkBaseInRange(enemy)
-                        if targetBase then
-                            enemy.isAttacking = true
-                            enemy.attackTimer = 0
-                            
-                            table.insert(updates, {
-                                id = enemy.id,
-                                type = 'enemyStartAttack',
-                                targetSide = targetBase.side,
-                                x = enemy.x,
-                                y = enemy.y
-                            })
-                        else
+                    -- Update position
+                    enemy.x = enemy.x + moveX
+                    enemy.y = enemy.y + moveY
+                    
+                    -- Only update direction if we're actually moving
+                    if math.abs(moveX) > 0.01 or math.abs(moveY) > 0.01 then
+                        enemy.direction = math.atan2(moveY, moveX)
+                    end
+                    
+                    self.grid:updateEntity(enemy)
+                    
+                    -- Check if we've reached the target point
+                    local distToTarget = math.sqrt(
+                        (enemy.x - enemy.targetPoint.x)^2 + 
+                        (enemy.y - enemy.targetPoint.y)^2
+                    )
+                    
+                    -- Check for base attacks
+                    local targetBase = self:checkBaseInRange(enemy)
+                    if targetBase then
+                        enemy.isAttacking = true
+                        enemy.attackTimer = 0
+                        table.insert(updates, {
+                            id = enemy.id,
+                            type = 'enemyStartAttack',
+                            targetSide = targetBase.side,
+                            x = enemy.x,
+                            y = enemy.y
+                        })
+                    else
+                        -- Only send movement updates if we're actually moving
+                        if math.abs(moveX) > 0.01 or math.abs(moveY) > 0.01 then
                             table.insert(updates, {
                                 id = enemy.id,
                                 x = enemy.x,
                                 y = enemy.y,
                                 direction = enemy.direction,
                                 health = enemy.health,
-                                targetX = currentPoint.x,
-                                targetY = currentPoint.y,
+                                targetX = enemy.targetPoint.x,
+                                targetY = enemy.targetPoint.y,
                                 type = "movement"
                             })
                         end
-                    else
-                        if enemy.currentPathIndex < #enemy.pathPoints then
-                            enemy.currentPathIndex = enemy.currentPathIndex + 1
+                    end
+
+                    -- Check if we've reached the current target point
+                    if distToTarget < 5 then  -- Changed from > to <
+                        -- Reached current target point, get next zone
+                        if enemy.currentZone.nextZone then
+                            enemy.currentZone = enemy.currentZone.nextZone
+                            -- If there's another zone after this one, set the intersection point
+                            if enemy.currentZone.nextZone then
+                                enemy.targetPoint = getZoneIntersectionPoint(
+                                    enemy.currentZone,
+                                    enemy.currentZone.nextZone
+                                )
+                            else
+                                -- This is the final zone, move to its center
+                                enemy.targetPoint = {
+                                    x = enemy.currentZone.x + enemy.currentZone.width/2,
+                                    y = enemy.currentZone.y + enemy.currentZone.height/2
+                                }
+                            end
+                        else
+                            -- Reached the end of the path
+                            enemy.targetPoint = nil
+                        end
+                    end
+                end
+            else
+                -- Attack logic remains the same
+                local targetBase = self:checkBaseInRange(enemy)
+                if not targetBase then
+                    enemy.isAttacking = false
+                else
+                    enemy.attackTimer = (enemy.attackTimer or 0) - dt
+                    if enemy.attackTimer <= 0 then
+                        enemy.attackTimer = 1 / enemy.attackRate
+                        
+                        table.insert(updates, {
+                            id = enemy.id,
+                            type = 'enemyAttack',
+                            targetSide = targetBase.side,
+                            damage = enemy.damage or 10
+                        })
+                        
+                        local damageUpdates = self.baseManager:takeDamage(targetBase.side, enemy.damage or 10)
+                        if damageUpdates then
+                            for _, update in ipairs(damageUpdates) do
+                                table.insert(updates, update)
+                            end
                         end
                     end
                 end
@@ -136,8 +292,15 @@ function ServerEnemyManager:update(dt)
 end
 
 function ServerEnemyManager:spawnEnemy(data)
-    local spawnPoint = self.spawnPoints[data.side][data.spawnPointIndex]
-    if not spawnPoint then return nil end
+    local spawnZone = self.spawnZones[data.side][data.zoneSpawnIndex]
+    if not spawnZone then return nil end
+    
+    -- Random position within the spawn zone's path width
+    local margin = spawnZone.height * 0.1
+    local spawnPoint = {
+        x = spawnZone.x + spawnZone.width/2,
+        y = spawnZone.y + margin + math.random() * (spawnZone.height - margin * 2)
+    }
     
     local enemy = ServerEnemyFactory:spawnEnemy(
         data.enemyType,
@@ -146,13 +309,15 @@ function ServerEnemyManager:spawnEnemy(data)
         spawnPoint.y,
         data.id
     )
-    print('Spawned enemy using server factory')
-    print("Enemy Id: ", enemy.id)
-    enemy.pathPoints = spawnPoint.path
-    enemy.currentPathIndex = 1
+    
+    enemy.currentZone = spawnZone
+    if spawnZone.nextZone then
+        enemy.targetPoint = getZoneIntersectionPoint(spawnZone, spawnZone.nextZone)
+    end
+    
     self.enemies[enemy.id] = enemy
     self.grid:insert(enemy)
-
+    
     return enemy
 end
 

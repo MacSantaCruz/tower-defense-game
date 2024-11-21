@@ -27,10 +27,12 @@ function ServerBaseManager:new(config)
             position = pos,
             x = pos.x,
             y = pos.y,
+            width = pos.width,
+            height = pos.height,
             health = BASE_MAX_HEALTH,
             maxHealth = BASE_MAX_HEALTH,
-            size = BASE_SIZE,
-            type = "base"  -- Useful for type checking in collision
+            size = pos.width,  -- Use actual width from map
+            type = "base"
         }
         
         -- Add base to spatial grid
@@ -80,18 +82,17 @@ function ServerBaseManager:cleanup()
 end
 
 function ServerBaseManager:getBaseAtPosition(x, y)
-    -- Use spatial grid to find nearby entities
-    local nearbyEntities = self.grid:getNearbyEntities(x, y, BASE_SIZE)
+    local nearbyEntities = self.grid:getNearbyEntities(x, y, math.max(BASE_SIZE, 256))  -- Use larger search radius
     
-    -- Check each nearby entity
     for _, entity in ipairs(nearbyEntities) do
         if entity.type == "base" then
-            -- Check if point is within base bounds
+            -- Use actual width/height for bounds checking
             local dx = x - entity.x
             local dy = y - entity.y
-            local halfSize = entity.size / 2
+            local halfWidth = entity.width / 2
+            local halfHeight = entity.height / 2
             
-            if math.abs(dx) <= halfSize and math.abs(dy) <= halfSize then
+            if math.abs(dx) <= halfWidth and math.abs(dy) <= halfHeight then
                 return entity
             end
         end

@@ -1,145 +1,196 @@
 local MapConfig = {
     tileSize = 32,
-    width = 75 * 2,      -- Number of tiles wide
-    height = 56,      -- Number of tiles high
-    pathTiles = {},    -- Will store path tile positions
+    width = 75 * 2,      
+    height = 56,      
+    pathTiles = {},  
     spawnPoints = {
         left = {},
         right = {}
     },
     paths = {},
+    trees = {
+        left = {},    
+        right = {}    
+    },
+    zones = {
+        left = {},    
+        right = {}    
+    },
+    spawnZones = {
+        left = {},    
+        right = {} 
+    },
     basePositions = {
         left = nil,
         right = nil
     }
 }
 
-function MapConfig:SetupMap()
-    self.pathTiles = {}
-    self.spawnPoints.left = {}
-    self.spawnPoints.right = {}
-    self.paths = {}
-    
-    local mapData = require("maps/kek_3")
-    self:SetupEnemyPaths(mapData)
-    self:SetupPathTiles(mapData)
-end
-
-function MapConfig:SetupEnemyPaths(mapData)
-    local pathsLayer
-    for _, layer in ipairs(mapData.layers) do
-        if layer.type == "objectgroup" and layer.name == "Paths" then
-            pathsLayer = layer
-            break
-        end
+function MapConfig:createMirroredObject(object, isTree)
+    if not object.id then 
+        object.id = 1  -- Provide default ID if none exists
     end
 
-    -- Figure out all the paths for enemies 
-    if pathsLayer then
-        local pathsById = {}
-        
-        -- First pass: collect polylines/paths
-        for _, object in ipairs(pathsLayer.objects) do
-            if object.shape == "polyline" then
-                local path = {}
-                -- Convert polyline points to absolute coordinates
-                for _, point in ipairs(object.polyline) do
-                    table.insert(path, {
-                        x = object.x + point.x,
-                        y = object.y + point.y
-                    })
-                end
-                path.name = object.name
-                pathsById[object.id] = path
-            end
-        end
-        
-        -- Second pass: process spawn points
-        for _, object in ipairs(pathsLayer.objects) do
-            if object.shape == "point" and object.name:match("^spawn_") then
-                local pathRef = object.properties.pathName
-                local pathId = pathRef and pathRef.id
-                local linkedPath = pathsById[pathId]
-                
-                if linkedPath then
-                    -- Create original spawn point
-                    table.insert(self.spawnPoints.left, {
-                        x = object.x,
-                        y = object.y,
-                        path = linkedPath,
-                        name = object.name
-                    })
-                    
-                    -- Create mirrored spawn point (flipping across center)
-                    local mirroredPath = self:createMirroredPath(linkedPath)
-                    table.insert(self.spawnPoints.right, {
-                        x = self.width * self.tileSize - object.x,
-                        y = object.y,
-                        path = mirroredPath,
-                        name = object.name .. "_mirrored"
-                    })
-                end
-            elseif object.shape == "point" and object.name == "end" then
-                self.basePositions.left = {
-                    x = object.x,
-                    y = object.y
-                }
-                
-                self.basePositions.right = {
-                    x = self.width * self.tileSize - object.x,
-                    y = object.y
-                }
-            end
-        end
-    end
-end
-
-function MapConfig:SetupPathTiles(mapData)
-     -- Find the TilePath layer
-    local tilePathLayer
-    for _, layer in ipairs(mapData.layers) do
-        if layer.name == "TilePath" then
-            tilePathLayer = layer
-            break
-        end
-    end
-
-    -- Process path tiles for both sides
-    if tilePathLayer then
-        for y = 1, self.height do
-            self.pathTiles[y] = {}
-            
-            -- Original (left) side
-            for x = 1, 75 do  -- Original map width
-                -- Lua arrays start at 1, adjust index calculation
-                local index = ((y-1) * 75) + x
-                if tilePathLayer.data[index] and tilePathLayer.data[index] ~= 0 then
-                    self.pathTiles[y][x] = true
-                    
-                    -- Mirror the path tile to the right side
-                    local mirroredX = (75 * 2) - x + 1  -- Mirror position
-                    self.pathTiles[y][mirroredX] = true
-                end
-            end
-        end
-    end
-end
-
-function MapConfig:createMirroredPath(originalPath)
-    if not originalPath then return nil end
-    
-    local mirroredPath = {}
     local centerX = self.width * self.tileSize / 2
     
-    for _, point in ipairs(originalPath) do
-        -- Mirror across the center line
-        table.insert(mirroredPath, {
-            x = (2 * centerX) - point.x,
-            y = point.y
-        })
+    local mirroredObject = {
+        id = object.id + 10000, -- Ensure unique ID for mirrored object
+        x = (2 * centerX) - (object.x + object.width), -- Mirror X position
+        y = object.y,
+        width = object.width,
+        height = object.height,
+        name = object.name and (object.name .. "_mirrored") or nil
+    }
+    
+    return mirroredObject
+end
+
+function MapConfig:SetupMap()
+    self.pathTiles = {}
+    self.zones = { left = {}, right = {} }
+    self.spawnZones = { left = {}, right = {} }
+    
+    self.mapData = require("maps/kekw")
+    print("MapData:", self.mapData)  -- Should show table memory address
+    
+    if not self.mapData then
+        error("Failed to load map data")
     end
     
-    return mirroredPath
+    for _, layer in ipairs(self.mapData.layers) do
+        if layer.type == "objectgroup" then
+            if layer.name == "Trees" then
+                -- Process trees
+                for _, object in ipairs(layer.objects) do
+                    local centerX = self.width * self.tileSize / 2
+                    -- Only process trees on the left side
+                    if object.x + (object.width / 2) < centerX then
+                        -- Create a complete tree object with all properties
+                        local tree = {
+                            id = object.id,
+                            x = object.x,
+                            y = object.y,
+                            width = object.width,
+                            height = object.height,
+                            name = object.name
+                        }
+                        table.insert(self.trees.left, tree)
+                        
+                        -- Create and store mirrored tree
+                        local mirroredTree = self:createMirroredObject(tree, true)
+                        table.insert(self.trees.right, mirroredTree)
+                    end
+                end
+            elseif layer.name == "Base" then
+                -- Process base objects
+                for _, object in ipairs(layer.objects) do
+                    if object.name == "Base" then
+                        local centerX = self.width * self.tileSize / 2
+                        -- Only process base on the left side
+                        if object.x + (object.width / 2) < centerX then
+                            -- Create left base with full object properties
+                            self.basePositions.left = {
+                                id = object.id,
+                                x = object.x + (object.width / 2),
+                                y = object.y + (object.height / 2),
+                                width = object.width,
+                                height = object.height,
+                                name = object.name
+                            }
+                            
+                            self.basePositions.right = {
+                                id = object.id + 10000,
+                                x = (2 * centerX) - (object.x + (object.width / 2)),  -- Mirror the center position
+                                y = object.y + (object.height / 2),
+                                width = object.width,
+                                height = object.height,
+                                name = object.name .. "_mirrored"
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    print("Setting up zones...")
+    self:SetupZones()
+end
+
+function MapConfig:SetupZones()
+    local zonesLayer
+    for _, layer in ipairs(self.mapData.layers) do
+        if layer.type == "objectgroup" and layer.name == "Zones" then
+            zonesLayer = layer
+            break
+        end
+    end
+
+    if zonesLayer then
+        -- First pass: collect all zones
+        local zonesById = {}
+        for _, object in ipairs(zonesLayer.objects) do
+            if object.shape == "rectangle" then
+                local zone = {
+                    id = object.id,
+                    x = object.x,
+                    y = object.y,
+                    width = object.width,
+                    height = object.height,
+                    name = object.name,
+                    isSpawn = object.properties.isSpawn or false,
+                    nextZoneId = object.properties.nextZone and object.properties.nextZone.id
+                }
+                zonesById[object.id] = zone
+                
+                -- Add to appropriate collection based on zone type
+                if zone.isSpawn then
+                    table.insert(self.spawnZones.left, zone)
+                else
+                    table.insert(self.zones.left, zone)
+                end
+                
+                -- Create mirrored zone for right side
+                local mirroredZone = self:createMirroredZone(zone)
+                if mirroredZone then
+                    zonesById[mirroredZone.id] = mirroredZone
+                    if zone.isSpawn then
+                        table.insert(self.spawnZones.right, mirroredZone)
+                    else
+                        table.insert(self.zones.right, mirroredZone)
+                    end
+                end
+            end
+        end
+        
+        -- Second pass: link zones
+        for _, zone in pairs(zonesById) do
+            if zone.nextZoneId then
+                zone.nextZone = zonesById[zone.nextZoneId]
+            end
+        end
+    end
+end
+
+function MapConfig:createMirroredZone(zone)
+    local centerX = self.width * self.tileSize / 2
+    local nextZoneId = zone.nextZoneId
+    if nextZoneId then
+        nextZoneId = nextZoneId + 10000
+    end
+
+    local mirroredZone = {
+        id = zone.id + 10000, -- Ensure unique ID for mirrored zone
+        x = (2 * centerX) - (zone.x + zone.width), -- Mirror X position
+        y = zone.y,
+        width = zone.width,
+        height = zone.height,
+        name = zone.name .. "_mirrored",
+        isSpawn = zone.isSpawn,
+        nextZoneId = nextZoneId
+    }
+    
+    return mirroredZone
 end
 
 

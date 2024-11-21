@@ -7,8 +7,6 @@ local ClientBaseManager = {
 }
 ClientBaseManager.__index = ClientBaseManager
 
-local BASE_SIZE = 256
-
 function ClientBaseManager:new(side)
     local instance = setmetatable({}, self)
     instance.bases = {}
@@ -35,10 +33,11 @@ function ClientBaseManager:new(side)
     )
     instance.particleSystem:setSizes(2, 1, 0)
     instance.particleSystem:setSpeed(100, 300)
-    instance.particleSystem:setEmissionArea("uniform", BASE_SIZE/2, BASE_SIZE/2)
+    -- We'll set the emission area when we know the base size
 
     return instance
 end
+
 
 function ClientBaseManager:initializeBases(positions)
     self.basePositions = positions
@@ -50,26 +49,14 @@ function ClientBaseManager:initializeBases(positions)
             position = pos,
             health = 1000,
             maxHealth = 1000,
-            size = BASE_SIZE,
+            width = pos.width,    -- Use actual width from map
+            height = pos.height,  -- Use actual height from map
             destroyed = false,
             damageFlashTime = 0
         }
-    end
-end
-
-function ClientBaseManager:takeDamage(side, amount, currentHealth)
-    LOGGER.info("Base taking damage - Side:", side, "Amount:", amount, "Current Health:", currentHealth)
-    
-    local base = self.bases[side]
-    if base then
-        LOGGER.info("Previous health:", base.health, "New health:", currentHealth)
-        base.health = currentHealth
-        base.damageFlashTime = 0.1
-        if currentHealth <= 0 and not base.destructionTimer then
-            self:startBaseDestruction(side)
-        end
-    else
-        LOGGER.error("No base found for side:", side)
+        
+        -- Update particle emission area for this base
+        self.particleSystem:setEmissionArea("uniform", pos.width/2, pos.height/2)
     end
 end
 
@@ -112,6 +99,23 @@ function ClientBaseManager:startBaseDestruction(side)
     end
 end
 
+
+function ClientBaseManager:takeDamage(side, amount, currentHealth)
+    LOGGER.info("Base taking damage - Side:", side, "Amount:", amount, "Current Health:", currentHealth)
+    
+    local base = self.bases[side]
+    if base then
+        LOGGER.info("Previous health:", base.health, "New health:", currentHealth)
+        base.health = currentHealth
+        base.damageFlashTime = 0.1
+        if currentHealth <= 0 and not base.destructionTimer then
+            self:startBaseDestruction(side)
+        end
+    else
+        LOGGER.error("No base found for side:", side)
+    end
+end
+
 function ClientBaseManager:draw()
     -- Draw particles
     love.graphics.draw(self.particleSystem)
@@ -136,15 +140,15 @@ function ClientBaseManager:draw()
                 end
             end
             
-            -- Draw base
+            -- Draw base using actual dimensions
             love.graphics.rectangle("fill", 
-                drawX - base.size/2,
-                drawY - base.size/2,
-                base.size, base.size)
+                drawX - base.width/2,
+                drawY - base.height/2,
+                base.width, base.height)
             
             -- Draw health bar if base isn't being destroyed
             if not base.destructionTimer then
-                local healthBarWidth = base.size
+                local healthBarWidth = base.width  -- Use base width for health bar
                 local healthBarHeight = 16
                 local healthPercentage = base.health / base.maxHealth
                 
@@ -152,14 +156,14 @@ function ClientBaseManager:draw()
                 love.graphics.setColor(0.3, 0.3, 0.3, base.opacity or 1)
                 love.graphics.rectangle("fill",
                     drawX - healthBarWidth/2,
-                    drawY - base.size/2 - healthBarHeight - 10,
+                    drawY - base.height/2 - healthBarHeight - 10,
                     healthBarWidth, healthBarHeight)
                 
                 -- Health bar fill
                 love.graphics.setColor(0.2, 0.8, 0.2, base.opacity or 1)
                 love.graphics.rectangle("fill",
                     drawX - healthBarWidth/2,
-                    drawY - base.size/2 - healthBarHeight - 10,
+                    drawY - base.height/2 - healthBarHeight - 10,
                     healthBarWidth * healthPercentage, healthBarHeight)
             end
             
