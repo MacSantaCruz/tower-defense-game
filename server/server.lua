@@ -258,6 +258,7 @@ function GameServer:removeClient(client)
 end
 
 --TODO: Audit this, I'm pretty sure this is all messed up and doesn't need to be this complicated
+-- Note i think the path check for sure doesn't work
 function GameServer:isValidTowerPlacement(data)
     logger.info("Checking Valid Placement Server")
     logger.info(string.format("Raw placement data - X: %d, Y: %d, Side: %s", 

@@ -105,6 +105,7 @@ function TowerManager:createTower(towerData)
     if tower then
         self.towers[tower.id] = tower  -- Store by ID
         table.insert(self.towersList, tower)  -- Keep array for iteration
+        self:clearTowerSelection()
         return tower
     end
     return nil
@@ -115,12 +116,21 @@ function TowerManager:selectTowerType(towerType)
     self.placementGhost = {}  -- Initialize ghost when selecting tower type
 end
 
+function TowerManager:clearTowerSelection()
+    self.selectedTowerType = nil
+    self.placementGhost = nil
+end
+
 
 function TowerManager:isValidPlacement(x, y)
-    -- Adjust x coordinate for right side checking
+    -- Convert the world x coordinate to the original map space for the right side
     local checkX = x
     if self.side == "right" then
-        checkX = x - self.originalMapWidth  -- Adjust to original map coordinates
+        -- Calculate the relative position from the right edge of the original map
+        checkX = x - self.originalMapWidth
+        
+        -- Mirror the x coordinate back to the original map space
+        checkX = self.originalMapWidth - checkX
     end
     
     -- Convert world coordinates to tile coordinates for all four corners of the 2x2 area
@@ -160,7 +170,9 @@ function TowerManager:isValidPlacement(x, y)
     for _, tower in pairs(self.towers) do
         local towerCheckX = tower.x
         if self.side == "right" then
+            -- Apply the same transformation to existing tower positions
             towerCheckX = tower.x - self.originalMapWidth
+            towerCheckX = self.originalMapWidth - towerCheckX
         end
         
         local dx = towerCheckX - checkX
