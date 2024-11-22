@@ -127,26 +127,17 @@ function TowerManager:isValidPlacement(x, y)
     local tileX = math.floor(checkX / self.tileSize)
     local tileY = math.floor(y / self.tileSize)
     
-    LOGGER.info(string.format("Checking placement - Side: %s, Original X: %d, Adjusted X: %d, TileX: %d, TileY: %d", 
-        self.side, x, checkX, tileX, tileY))
-    
     -- Check a 2x2 area centered on the placement point
     for offsetY = -1, 0 do
         for offsetX = -1, 0 do
             local currentX = tileX + offsetX
             local currentY = tileY + offsetY
             
-            -- Mirror the X coordinate for path checking on right side
-            local pathCheckX = currentX
-            if self.side == "right" then
-                pathCheckX = self.gameMap.width - 1 - currentX  -- Mirror the X coordinate
-            end
-            
             -- Ensure we're within map bounds
-            if pathCheckX < 0 or currentY < 0 or 
-               pathCheckX >= self.gameMap.width or 
+            if currentX < 0 or currentY < 0 or 
+               currentX >= self.gameMap.width or 
                currentY >= self.gameMap.height then
-                LOGGER.info(string.format('Failed Map Bounds at X: %d, Y: %d', pathCheckX, currentY))
+                LOGGER.info('Failed Map Bounds')
                 return false
             end
             
@@ -154,10 +145,10 @@ function TowerManager:isValidPlacement(x, y)
             if self.gameMap.layers["TilePath"] then
                 local pathsLayer = self.gameMap.layers["TilePath"]
                 if currentY >= 0 and currentY < pathsLayer.height and
-                   pathCheckX >= 0 and pathCheckX < pathsLayer.width then
-                    local tile = pathsLayer.data[currentY + 1][pathCheckX + 1]
+                   currentX >= 0 and currentX < pathsLayer.width then
+                    local tile = pathsLayer.data[currentY + 1][currentX + 1]
                     if tile and tile.gid and tile.gid > 0 then
-                        LOGGER.info(string.format('Failed Tilepath at X: %d, Y: %d', pathCheckX, currentY))
+                        LOGGER.info('Failed Tilepath')
                         return false
                     end
                 end
@@ -184,7 +175,6 @@ function TowerManager:isValidPlacement(x, y)
     LOGGER.info('Passed isValidPlacement Client')
     return true
 end
-
 
 function TowerManager:handleAttack(towerId, targetId, damage)
     LOGGER.debug(string.format("[TowerManager] Handling attack - Tower: %d, Target: %d", towerId, targetId))

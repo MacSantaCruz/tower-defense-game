@@ -8,6 +8,8 @@ local logger = require "logger"
 local MapConfig = require "utils.mapConfig"
 local MessageHandler = require "utils.messageHandler"
 local BaseManager = require "./baseManager"
+local CollisionSystem = require "utils.CollisionSystem"
+local SpatialGrid = require "utils.spatialGrid"
 
 io.stdout:setvbuf('no')  -- Disable output buffering
 io.stderr:setvbuf('no')  -- Disable error buffering
@@ -30,6 +32,7 @@ function GameServer:new()
     server.mapConfig = MapConfig
     server.mapConfig:SetupMap()
     server.messageHandler = MessageHandler:new(server)
+    
 
     server.baseManager = BaseManager:new({
         basePositions = server.mapConfig.basePositions
@@ -56,6 +59,9 @@ function GameServer:new()
     server.towerManager = ServerTowerManager:new({
         tileSize = server.mapConfig.tileSize
     })
+
+    server.collisionSystem = CollisionSystem.getInstance()
+    server.collisionSystem:initialize(server.mapConfig, SpatialGrid.getInstance())
 
     function server:getEnemies()
         return self.enemyManager.enemies
@@ -324,18 +330,8 @@ function GameServer:isValidTowerPlacement(data)
             return false
         end
     end
-    
-    -- Check if player is placing on their side (using original coordinates)
-    if data.side == "right" and data.x < ((self.mapConfig.originalWidth) * self.mapConfig.tileSize) then
-        logger.info("Right player trying to place on left side")
-        return false
-    elseif data.side == "left" and data.x >= (self.mapConfig.originalWidth * self.mapConfig.tileSize) then
-        logger.info("Left player trying to place on right side")
-        return false
-    end
-    
-    logger.info("Placement validation passed")
-    return true
+
+    return self.collisionSystem:isValidTowerPlacement(data)
 end
 
 function GameServer:handleNewConnection(client)

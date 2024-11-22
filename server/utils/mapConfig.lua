@@ -63,9 +63,9 @@ function MapConfig:SetupMap()
             if layer.name == "Trees" then
                 -- Process trees
                 for _, object in ipairs(layer.objects) do
-                    local centerX = self.width * self.tileSize / 2
+                    -- local centerX = self.width * self.tileSize / 2
                     -- Only process trees on the left side
-                    if object.x + (object.width / 2) < centerX then
+                    -- if object.x + (object.width / 2) < centerX then
                         -- Create a complete tree object with all properties
                         local tree = {
                             id = object.id,
@@ -80,7 +80,7 @@ function MapConfig:SetupMap()
                         -- Create and store mirrored tree
                         local mirroredTree = self:createMirroredObject(tree, true)
                         table.insert(self.trees.right, mirroredTree)
-                    end
+                    -- end
                 end
             elseif layer.name == "Base" then
                 -- Process base objects
