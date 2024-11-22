@@ -209,7 +209,13 @@ function love.draw()
             (panelHeight - font:getHeight()) / 2
         )
         
-        love.graphics.setColor(1, 1, 1, 1) 
+        love.graphics.setColor(1, 1, 1, 1)
+
+        love.graphics.print(
+            "Enemy SpawnSelected: " .. player.enemySpawnSelected,
+            statusX,
+            80
+        )
     end
 
     performanceStats.drawTime = love.timer.getTime() - startTime
@@ -265,17 +271,22 @@ function love.keypressed(key)
         player.towerManager:selectTowerType("fastTower")
     elseif key == "2" then
         player.towerManager:selectTowerType("mechTower")
-    elseif key == "3" then
+    elseif key == "kp1" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(1, "blobEnemy", targetSide)
-    elseif key == "4" then
+        Network:spawnEnemy(player.enemySpawnSelected, "blobEnemy", targetSide)
+    elseif key == "kp2" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(2, "blobEnemy", targetSide)
-    elseif key == "5" then
+        Network:spawnEnemy(player.enemySpawnSelected, "peonEnemy", targetSide)
+    elseif key == "kp3" then
         -- Enemy spawning
         local targetSide = Network.playerSide == "left" and "right" or "left"
-        Network:spawnEnemy(3, "blobEnemy", targetSide)
+        Network:spawnEnemy(player.enemySpawnSelected, "blobEnemy", targetSide)
+    elseif key == "tab" then
+        player.enemySpawnSelected = player.enemySpawnSelected + 1
+        if player.enemySpawnSelected > 3 then
+            player.enemySpawnSelected = 1
+        end
     end
 end

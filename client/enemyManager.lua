@@ -18,94 +18,111 @@ end
 
 function ClientEnemyManager:update(dt)
     local currentTime = love.timer.getTime()
+    local enemiestoRemove = {}
     
-    for _, enemy in pairs(self.enemies) do
-        if enemy.targetX then
-            -- Only calculate movement if we haven't cached it or position changed
-            local cacheKey = enemy.id .. "_" .. enemy.targetX .. "_" .. enemy.targetY
-            local moveData = self.moveCache[cacheKey]
-            
-            if not moveData then
-                -- Calculate once and cache
-                local dx = enemy.targetX - enemy.x
-                local dy = enemy.targetY - enemy.y
-                local distSq = dx * dx + dy * dy  -- Avoid square root when possible
-                
-                -- Only create new movement data if actually moving
-                if distSq > 0.01 then  -- Small threshold for movement
-                    moveData = {
-                        dx = dx,
-                        dy = dy,
-                        distSq = distSq,
-                        velocityX = dx / self.serverUpdateRate,
-                        velocityY = dy / self.serverUpdateRate,
-                        direction = math.atan2(dy, dx)
-                    }
-                    self.moveCache[cacheKey] = moveData
+    for id, enemy in pairs(self.enemies) do
+        -- Check if enemy exists and handle death state
+        if enemy then
+            if enemy.deathAnimationComplete then
+                -- Mark for removal instead of removing directly
+                table.insert(enemiestoRemove, id)
+            else
+                -- Only process movement if enemy is not dying
+                if enemy.targetX and not enemy.isDying then
+                    -- Only calculate movement if we haven't cached it or position changed
+                    local cacheKey = enemy.id .. "_" .. enemy.targetX .. "_" .. enemy.targetY
+                    local moveData = self.moveCache[cacheKey]
                     
-                    -- Cleanup old cache entries
-                    if enemy.lastCacheKey and enemy.lastCacheKey ~= cacheKey then
-                        self.moveCache[enemy.lastCacheKey] = nil
+                    if not moveData then
+                        -- Calculate once and cache
+                        local dx = enemy.targetX - enemy.x
+                        local dy = enemy.targetY - enemy.y
+                        local distSq = dx * dx + dy * dy
+                        
+                        if distSq > 0.01 then
+                            moveData = {
+                                dx = dx,
+                                dy = dy,
+                                distSq = distSq,
+                                velocityX = dx / self.serverUpdateRate,
+                                velocityY = dy / self.serverUpdateRate
+                            }
+                            self.moveCache[cacheKey] = moveData
+                            
+                            if enemy.lastCacheKey and enemy.lastCacheKey ~= cacheKey then
+                                self.moveCache[enemy.lastCacheKey] = nil
+                            end
+                            enemy.lastCacheKey = cacheKey
+                        end
                     end
-                    enemy.lastCacheKey = cacheKey
+                    
+                    if moveData then
+                        local progress = dt / self.interpolationBuffer
+                        progress = math.min(progress, 1.0)
+                        
+                        enemy.x = enemy.x + moveData.velocityX * dt * progress
+                        enemy.y = enemy.y + moveData.velocityY * dt * progress
+                    end
+                end
+                
+                -- Update facing based on server-provided direction if not dying
+                if enemy.direction and not enemy.isDying then
+                    enemy:updateFacing(enemy.direction)
+                end
+                
+                -- Always update animation
+                if enemy.update then
+                    enemy:update(dt)
                 end
             end
-            
-            if moveData then
-                -- Simple linear interpolation instead of complex prediction
-                local progress = dt / self.interpolationBuffer
-                progress = math.min(progress, 1.0)  -- Clamp to avoid overshooting
-                
-                enemy.x = enemy.x + moveData.velocityX * dt * progress
-                enemy.y = enemy.y + moveData.velocityY * dt * progress
-                enemy.direction = moveData.direction
-            end
         end
-        
-        -- Minimal enemy update
-        if enemy.update then
-            enemy:update(dt)
+    end
+    
+    -- Remove dead enemies after the loop
+    for _, id in ipairs(enemiestoRemove) do
+        if self.enemies[id] and self.enemies[id].lastCacheKey then
+            self.moveCache[self.enemies[id].lastCacheKey] = nil
         end
+        self.enemies[id] = nil
     end
 end
 
 
 function ClientEnemyManager:updateEnemy(id, data)
     local enemy = self.enemies[id]
+    LOGGER.info("Updating enemy:", id, "Update type:", data.type)
     if enemy then
-        if data.health and data.health ~= enemy.health then
-            enemy.health = data.health
-            self:onEnemyDamaged(enemy)
+        if data.type == 'enemyDied' then
+            LOGGER.info("Enemy died, starting death animation")
+            enemy:startDeathAnimation()
+            return
         end
         
-        if data.isAttacking ~= nil then
-            enemy.isAttacking = data.isAttacking
-            enemy.targetSide = data.targetSide
-            LOGGER.info("Enemy attack state updated:", id, "isAttacking:", enemy.isAttacking)
-        end
-        
-        -- Update position only if we're not attacking
-        if not enemy.isAttacking and data.x and data.y then
-            if enemy.lastCacheKey then
-                self.moveCache[enemy.lastCacheKey] = nil
+        if not enemy.isDying then -- Only update if not dying
+            if data.health and data.health ~= enemy.health then
+                enemy.health = data.health
+                self:onEnemyDamaged(enemy)
             end
             
-            enemy.targetX = data.x
-            enemy.targetY = data.y
-        end
-        
-        if data.direction then
-            enemy.direction = data.direction
+            if data.isAttacking ~= nil then
+                enemy.isAttacking = data.isAttacking
+                enemy.targetSide = data.targetSide
+            end
+            
+            if not enemy.isAttacking and data.x and data.y then
+                if enemy.lastCacheKey then
+                    self.moveCache[enemy.lastCacheKey] = nil
+                end
+                
+                enemy.targetX = data.x
+                enemy.targetY = data.y
+            end
+            
+            if data.direction then
+                enemy.direction = data.direction
+            end
         end
     end
-end
-
-function ClientEnemyManager:removeEnemy(id)
-    local enemy = self.enemies[id]
-    if enemy and enemy.lastCacheKey then
-        self.moveCache[enemy.lastCacheKey] = nil
-    end
-    self.enemies[id] = nil
 end
 
 function ClientEnemyManager:onEnemyDamaged(enemy)
@@ -116,10 +133,6 @@ function ClientEnemyManager:onEnemyDamaged(enemy)
 end
 
 function ClientEnemyManager:spawnEnemy(enemyData)
-    -- Remove any existing enemy with same ID to prevent duplicates
-    if self.enemies[enemyData.id] then
-        self:removeEnemy(enemyData.id)
-    end
     -- Create enemy using factory
     local enemy = EnemyFactory:spawnEnemy(
         enemyData.type,
@@ -139,10 +152,6 @@ function ClientEnemyManager:spawnEnemy(enemyData)
     end
     
     return enemy
-end
-
-function ClientEnemyManager:removeEnemy(id)
-    self.enemies[id] = nil
 end
 
 function ClientEnemyManager:updateEnemyPosition(id, x, y, direction, health, targetx, targety)

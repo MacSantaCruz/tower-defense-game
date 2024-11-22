@@ -103,8 +103,8 @@ function TowerManager:createTower(towerData)
     -- Create client-side tower instance
     local tower = TowerFactory:createTower(towerData)
     if tower then
-        self.towers[tower.id] = tower  -- Store by ID
-        table.insert(self.towersList, tower)  -- Keep array for iteration
+        self.towers[tower.id] = tower  
+        table.insert(self.towersList, tower)  
         self:clearTowerSelection()
         return tower
     end

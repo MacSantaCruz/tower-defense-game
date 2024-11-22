@@ -79,16 +79,18 @@ local MessageHandlers = {
         end
     end,
 
-    [NetworkConstants.SERVER.ENEMY_DIED] = function(network, data)
-        local deadEnemy = network.gameState.enemies[data.enemyId]
-        if deadEnemy then
-            local player = playerManager.players[deadEnemy.targetSide]
-            if player then
-                player.enemyManager:removeEnemy(data.enemyId)
-            end
-            network.gameState.enemies[data.enemyId] = nil
-        end
-    end,
+    -- [NetworkConstants.SERVER.ENEMY_DIED] = function(network, data)
+    --     local deadEnemy = network.gameState.enemies[data.enemyId]
+    --     if deadEnemy then
+    --         local player = playerManager.players[deadEnemy.targetSide]
+    --         if player then
+    --             player.enemyManager:updateEnemy(data.enemyId, {
+    --                 type = 'enemyDied'
+    --             })
+    --         end
+    --         network.gameState.enemies[data.enemyId] = nil
+    --     end
+    -- end,
 
     [NetworkConstants.SERVER.GOLD_UPDATE] = function(network, data)
         -- Update the player's gold instead of network
@@ -128,11 +130,6 @@ local MessageHandlers = {
                                 x = update.x,
                                 y = update.y
                             })
-                            
-                            if update.health <= 0 then
-                                player.enemyManager:removeEnemy(update.id)
-                                network.gameState.enemies[update.id] = nil
-                            end
                         end
                     end
                 end
@@ -156,12 +153,13 @@ local MessageHandlers = {
                         if update.type == NetworkConstants.UPDATE.ENEMY_DEATH then
                             LOGGER.info("[Network] Received death update for Enemy:", update.id)
                             network.gameState.enemies[update.id] = nil
-                            local enemy = nil
                             for _, player in pairs(playerManager.players) do
                                 enemy = player.enemyManager.enemies[update.id]
                                 if enemy then
                                     LOGGER.info("Found enemy in player manager, removing:", update.id)
-                                    player.enemyManager:removeEnemy(update.id)
+                                    player.enemyManager:updateEnemy(update.id, {
+                                        type = 'enemyDied'
+                                    })
                                     break
                                 end
                             end

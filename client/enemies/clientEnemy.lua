@@ -20,6 +20,7 @@ local Enemy = {
     currentFrame = 1,
     animTimer = 0,
     frameDelay = 0.2,
+    deathFrameDelay = .15,
     frames = {}, -- Table for up, down, and side frames
     
     -- Direction properties
@@ -56,12 +57,11 @@ function Enemy:new(x, y, properties)
 end
 
 function Enemy:loadDirectionalSprites(spritePaths)
-    LOGGER.info("Loading directional sprites...")
     self.sprites = {}
     self.frames = {}
     
+    -- Load movement sprites
     for direction, path in pairs(spritePaths) do
-        LOGGER.info("Loading sprite for direction:", direction, "path:", path)
         local success, result = pcall(function()
             return love.graphics.newImage(path)
         end)
@@ -69,20 +69,31 @@ function Enemy:loadDirectionalSprites(spritePaths)
         if success then
             self.sprites[direction] = result
             self.frames[direction] = {}
-            LOGGER.info("Successfully loaded sprite for", direction)
         else
             LOGGER.info("Failed to load sprite for", direction, "Error:", result)
         end
     end
     
+    -- Load death sprites if provided
+    if spritePaths.deathUp then
+        self.sprites.deathUp = love.graphics.newImage(spritePaths.deathUp)
+        self.frames.deathUp = {}
+    end
+    if spritePaths.deathDown then
+        self.sprites.deathDown = love.graphics.newImage(spritePaths.deathDown)
+        self.frames.deathDown = {}
+    end
+    if spritePaths.deathSide then
+        self.sprites.deathSide = love.graphics.newImage(spritePaths.deathSide)
+        self.frames.deathSide = {}
+    end
+    
     -- Set default sprite and verify it loaded
     self.currentSprite = self.sprites["down"]
-    LOGGER.info("Current sprite set to:", self.currentSprite and "loaded" or "nil")
 end
 
 
 function Enemy:setupAnimation(numFrames, direction)
-    LOGGER.info("Setting up animation for direction:", direction, "frames:", numFrames)
     if not self.sprites[direction] then 
         LOGGER.info("No sprite found for direction:", direction)
         return 
@@ -94,8 +105,6 @@ function Enemy:setupAnimation(numFrames, direction)
     local frameHeight = self.spriteHeight
     
     local spriteWidth, spriteHeight = self.sprites[direction]:getDimensions()
-    LOGGER.info("Sprite dimensions:", spriteWidth, spriteHeight)
-    LOGGER.info("Frame dimensions:", frameWidth, frameHeight)
     
     for i = 0, numFrames - 1 do
         local quad = love.graphics.newQuad(
@@ -108,42 +117,90 @@ function Enemy:setupAnimation(numFrames, direction)
         )
         table.insert(self.frames[direction], quad)
     end
-    LOGGER.info("Created", #self.frames[direction], "frames for", direction)
 end
 
-function Enemy:updateFacing(dx, dy)
-    -- Determine facing direction based on movement
-    if math.abs(dx) > math.abs(dy) then
+
+function Enemy:startDeathAnimation()
+    
+    self.isDying = true
+    self.currentFrame = 1
+    self.animTimer = 0
+    
+
+    
+    -- Choose death animation based on current facing direction
+    if self.facing == "up" and self.sprites.deathUp then
+        self.currentSprite = self.sprites.deathUp
+        self.deathDirection = "deathUp"
+    elseif self.facing == "down" and self.sprites.deathDown then
+        self.currentSprite = self.sprites.deathDown
+        self.deathDirection = "deathDown"
+    else -- Default to side death animation
+        self.currentSprite = self.sprites.deathSide
+        self.deathDirection = "deathSide"
+    end
+    
+end
+
+function Enemy:updateFacing(direction)
+    -- Convert radian direction to facing state
+    -- normalize direction to range -PI to PI
+    local normalizedDir = direction
+    while normalizedDir > math.pi do
+        normalizedDir = normalizedDir - 2 * math.pi
+    end
+    while normalizedDir < -math.pi do
+        normalizedDir = normalizedDir + 2 * math.pi
+    end
+    
+    -- Right: -0.785 to 0.785 (45° either side of 0)
+    -- Left: 2.356 to -2.356 (45° either side of PI)
+    -- Down: 0.785 to 2.356 (45° either side of PI/2)
+    -- Up: -2.356 to -0.785 (45° either side of -PI/2)
+    
+    if normalizedDir >= -0.785 and normalizedDir <= 0.785 then
         self.facing = "side"
-        self.flipX = dx > 0 and 1 or -1  -- Flip based on horizontal direction
+        self.flipX = -1  -- facing right (flipped because sprite faces left by default)
+    elseif normalizedDir >= 2.356 or normalizedDir <= -2.356 then
+        self.facing = "side"
+        self.flipX = 1   -- facing left (unflipped because sprite faces left by default)
+    elseif normalizedDir > 0.785 and normalizedDir < 2.356 then
+        self.facing = "down"
+        self.flipX = 1
     else
-        if dy > 0 then
-            self.facing = "down"
-        else
-            self.facing = "up"
-        end
-        self.flipX = 1  -- Reset flip for up/down
+        self.facing = "up"
+        self.flipX = 1
     end
     
     -- Update current sprite based on facing direction
     self.currentSprite = self.sprites[self.facing]
 end
 
+
 function Enemy:update(dt)
-    -- Update facing direction based on movement if we have target coordinates
-    if self.targetX and self.targetY then
-        local dx = self.targetX - self.x
-        local dy = self.targetY - self.y
-        self:updateFacing(dx, dy)
-    end
-    
-    -- Animation update
-    self.animTimer = self.animTimer + dt
-    if self.animTimer >= self.frameDelay then
-        self.animTimer = self.animTimer - self.frameDelay
-        self.currentFrame = self.currentFrame + 1
-        if self.currentFrame > #(self.frames[self.facing] or {}) then
-            self.currentFrame = 1
+    if self.isDying then
+        
+        -- Update death animation
+        self.animTimer = self.animTimer + dt
+        if self.animTimer >= self.deathFrameDelay then
+            self.animTimer = self.animTimer - self.deathFrameDelay
+            self.currentFrame = self.currentFrame + 1
+            
+            -- Check if death animation is complete
+            if self.frames[self.deathDirection] and self.currentFrame > #self.frames[self.deathDirection] then
+                self.deathAnimationComplete = true
+                self.currentFrame = #self.frames[self.deathDirection]
+            end
+        end
+    else
+        -- Normal animation update
+        self.animTimer = self.animTimer + dt
+        if self.animTimer >= self.frameDelay then
+            self.animTimer = self.animTimer - self.frameDelay
+            self.currentFrame = self.currentFrame + 1
+            if self.currentFrame > #(self.frames[self.facing] or {}) then
+                self.currentFrame = 1
+            end
         end
     end
     
@@ -158,50 +215,46 @@ function Enemy:update(dt)
 end
 
 function Enemy:draw()
-    if self.currentSprite and self.frames[self.facing] and #self.frames[self.facing] > 0 then
-        LOGGER.info("Drawing enemy at:", self.x, self.y)
-        LOGGER.info("Current facing:", self.facing)
-        LOGGER.info("Current frame:", self.currentFrame)
-        LOGGER.info("Flip value:", self.flipX)
+    if self.deathAnimationComplete then
+        LOGGER.info("Not drawing completed death animation")
+        return
+    end
+
+    if self.currentSprite then
+        -- Determine which frame array to use
+        local frames = self.isDying and self.frames[self.deathDirection] or self.frames[self.facing]
         
-        -- Apply damage flash effect
-        if self.isFlashing then
-            love.graphics.setColor(1, 0.3, 0.3, 1)
+        if frames and #frames > 0 then
+            if self.isDying then
+                LOGGER.info("Drawing death animation frame:", self.currentFrame, "of", #frames)
+            end
+            
+            -- Apply damage flash effect
+            if self.isFlashing then
+                love.graphics.setColor(1, 0.3, 0.3, 1)
+            else
+                love.graphics.setColor(unpack(self.color))
+            end
+            
+            love.graphics.draw(
+                self.currentSprite,
+                frames[self.currentFrame],
+                self.x,
+                self.y,
+                0,
+                self.scale * self.flipX,
+                self.scale,
+                self.spriteWidth / 2,
+                self.spriteHeight / 2
+            )
+            
+            love.graphics.setColor(1, 1, 1, 1)
         else
-            love.graphics.setColor(unpack(self.color))
+            LOGGER.error("No frames available for", self.isDying and "death animation" or "normal animation")
+            LOGGER.error("Current direction:", self.isDying and self.deathDirection or self.facing)
         end
-        
-        -- Draw sprite with debug rectangle to show bounds
-        love.graphics.draw(
-            self.currentSprite,
-            self.frames[self.facing][self.currentFrame],
-            self.x,
-            self.y,
-            0,
-            self.scale * self.flipX,
-            self.scale,
-            self.spriteWidth / 2,
-            self.spriteHeight / 2
-        )
-        
-        -- Draw debug rectangle around sprite bounds
-        love.graphics.setColor(1, 0, 0, 0.5)
-        love.graphics.rectangle(
-            "line",
-            self.x - (self.spriteWidth * self.scale) / 2,
-            self.y - (self.spriteHeight * self.scale) / 2,
-            self.spriteWidth * self.scale,
-            self.spriteHeight * self.scale
-        )
-        
-        love.graphics.setColor(1, 1, 1, 1)
     else
-        LOGGER.info("Cannot draw enemy:")
-        LOGGER.info("currentSprite:", self.currentSprite and "exists" or "nil")
-        LOGGER.info("frames table:", self.frames[self.facing] and "exists" or "nil")
-        if self.frames[self.facing] then
-            LOGGER.info("number of frames:", #self.frames[self.facing])
-        end
+        LOGGER.error("No sprite available for drawing")
     end
 end
 

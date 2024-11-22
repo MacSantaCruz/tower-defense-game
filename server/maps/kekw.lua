@@ -10,7 +10,7 @@ return {
   tilewidth = 32,
   tileheight = 32,
   nextlayerid = 7,
-  nextobjectid = 105,
+  nextobjectid = 164,
   properties = {},
   tilesets = {
     {
@@ -641,6 +641,771 @@ return {
           visible = true,
           properties = {
             ["nextZone"] = { id = 88 }
+          }
+        },
+        {
+          id = 112,
+          name = "MidSpawn",
+          type = "",
+          shape = "rectangle",
+          x = 2313.5,
+          y = 872.25,
+          width = 63,
+          height = 90.5,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["isSpawn"] = true,
+            ["nextZone"] = { id = 113 }
+          }
+        },
+        {
+          id = 113,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2299.5,
+          y = 624.75,
+          width = 94,
+          height = 256.5,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 115 }
+          }
+        },
+        {
+          id = 114,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2018.5,
+          y = 903.5,
+          width = 72,
+          height = 83,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 118 }
+          }
+        },
+        {
+          id = 115,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2281.5,
+          y = 572.5,
+          width = 96,
+          height = 77,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 116 }
+          }
+        },
+        {
+          id = 116,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2116.5,
+          y = 579,
+          width = 176,
+          height = 56,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 117 }
+          }
+        },
+        {
+          id = 117,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2043.5,
+          y = 607,
+          width = 92,
+          height = 312,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 114 }
+          }
+        },
+        {
+          id = 118,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1961,
+          y = 919.5,
+          width = 72,
+          height = 83,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 119 }
+          }
+        },
+        {
+          id = 119,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1896,
+          y = 912.5,
+          width = 72,
+          height = 69,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 120 }
+          }
+        },
+        {
+          id = 120,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1835.25,
+          y = 915.5,
+          width = 72,
+          height = 83,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 121 }
+          }
+        },
+        {
+          id = 121,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1777.75,
+          y = 931.5,
+          width = 72,
+          height = 83,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 122 }
+          }
+        },
+        {
+          id = 122,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1712.75,
+          y = 924.5,
+          width = 72,
+          height = 69,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 123 }
+          }
+        },
+        {
+          id = 123,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1664.25,
+          y = 915.5,
+          width = 72,
+          height = 83,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 124 }
+          }
+        },
+        {
+          id = 124,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1606.75,
+          y = 931.5,
+          width = 72,
+          height = 83,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 125 }
+          }
+        },
+        {
+          id = 125,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1541.75,
+          y = 924.5,
+          width = 72,
+          height = 69,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 126 }
+          }
+        },
+        {
+          id = 126,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1533,
+          y = 974,
+          width = 62,
+          height = 115,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 127 }
+          }
+        },
+        {
+          id = 127,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1167,
+          y = 1066,
+          width = 430,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 128 }
+          }
+        },
+        {
+          id = 128,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1148,
+          y = 1015.5,
+          width = 86,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 129 }
+          }
+        },
+        {
+          id = 129,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1146,
+          y = 955.5,
+          width = 86,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 130 }
+          }
+        },
+        {
+          id = 130,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1155,
+          y = 894.5,
+          width = 86,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 131 }
+          }
+        },
+        {
+          id = 131,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1154,
+          y = 832.5,
+          width = 68,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 132 }
+          }
+        },
+        {
+          id = 132,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1168,
+          y = 773.5,
+          width = 68,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 133 }
+          }
+        },
+        {
+          id = 133,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1141,
+          y = 720.5,
+          width = 101,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 134 }
+          }
+        },
+        {
+          id = 134,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 947,
+          y = 712.5,
+          width = 207,
+          height = 40,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 135 }
+          }
+        },
+        {
+          id = 135,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 904.5,
+          y = 743,
+          width = 75,
+          height = 85,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 136 }
+          }
+        },
+        {
+          id = 136,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 894.5,
+          y = 816.5,
+          width = 75,
+          height = 85,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 137 }
+          }
+        },
+        {
+          id = 137,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 883.5,
+          y = 889.5,
+          width = 75,
+          height = 85,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 138 }
+          }
+        },
+        {
+          id = 138,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 779.5,
+          y = 968.5,
+          width = 116,
+          height = 44,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 139 }
+          }
+        },
+        {
+          id = 139,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 722.5,
+          y = 1002,
+          width = 73,
+          height = 158,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 140 }
+          }
+        },
+        {
+          id = 140,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 731.5,
+          y = 1153,
+          width = 73,
+          height = 158,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 141 }
+          }
+        },
+        {
+          id = 141,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 646.5,
+          y = 1303,
+          width = 126,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 142 }
+          }
+        },
+        {
+          id = 142,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 600,
+          y = 1362.5,
+          width = 89,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 144 }
+          }
+        },
+        {
+          id = 143,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 599.5,
+          y = 1473.5,
+          width = 89,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 145 }
+          }
+        },
+        {
+          id = 144,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 602.5,
+          y = 1418.5,
+          width = 89,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 143 }
+          }
+        },
+        {
+          id = 145,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 597.5,
+          y = 1530.5,
+          width = 89,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 146 }
+          }
+        },
+        {
+          id = 146,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 597.5,
+          y = 1588.5,
+          width = 89,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 147 }
+          }
+        },
+        {
+          id = 147,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 575.5,
+          y = 1643.5,
+          width = 89,
+          height = 63,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 148 }
+          }
+        },
+        {
+          id = 148,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 81.5,
+          y = 1620.5,
+          width = 506,
+          height = 73,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 149 }
+          }
+        },
+        {
+          id = 149,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 91,
+          y = 991.5,
+          width = 70,
+          height = 636,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 150 }
+          }
+        },
+        {
+          id = 150,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 67,
+          y = 964.5,
+          width = 126,
+          height = 53,
+          rotation = 0,
+          visible = true,
+          properties = {}
+        },
+        {
+          id = 151,
+          name = "BotSpawn",
+          type = "",
+          shape = "rectangle",
+          x = 2334.5,
+          y = 1605.75,
+          width = 63,
+          height = 90.5,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["isSpawn"] = true,
+            ["nextZone"] = { id = 152 }
+          }
+        },
+        {
+          id = 152,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1571,
+          y = 1614.75,
+          width = 776,
+          height = 71.5,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 154 }
+          }
+        },
+        {
+          id = 154,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1502,
+          y = 1412.5,
+          width = 80,
+          height = 214,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 155 }
+          }
+        },
+        {
+          id = 155,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1577,
+          y = 1365,
+          width = 514,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 156 }
+          }
+        },
+        {
+          id = 156,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2056,
+          y = 1305.5,
+          width = 47,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 157 }
+          }
+        },
+        {
+          id = 157,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 2030.5,
+          y = 1252.5,
+          width = 47,
+          height = 67,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 158 }
+          }
+        },
+        {
+          id = 158,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1284.5,
+          y = 1226.5,
+          width = 760,
+          height = 36,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 159 }
+          }
+        },
+        {
+          id = 159,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1213,
+          y = 1242,
+          width = 80,
+          height = 69,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 161 }
+          }
+        },
+        {
+          id = 160,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1089,
+          y = 1287.5,
+          width = 80,
+          height = 69,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 162 }
+          }
+        },
+        {
+          id = 161,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1147,
+          y = 1238.5,
+          width = 80,
+          height = 69,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 160 }
+          }
+        },
+        {
+          id = 162,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1086,
+          y = 1348.5,
+          width = 42,
+          height = 23,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 163 }
+          }
+        },
+        {
+          id = 163,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 752,
+          y = 1362.5,
+          width = 341,
+          height = 23,
+          rotation = 0,
+          visible = true,
+          properties = {
+            ["nextZone"] = { id = 141 }
           }
         }
       }

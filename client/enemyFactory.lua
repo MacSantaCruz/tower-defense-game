@@ -1,8 +1,10 @@
 local BlobEnemy = require './enemies/blobEnemy'
+local PeonEnemy = require './enemies/peonEnemy'
 
 local EnemyFactory = {
     enemyTypes = {
-        blobEnemy = BlobEnemy
+        blobEnemy = BlobEnemy,
+        peonEnemy = PeonEnemy
     }
 }
 

@@ -23,7 +23,8 @@ function PlayerManager:createPlayer(side, options)
             {
                 side
             }
-        )
+        ),
+        enemySpawnSelected = 1
     }
     return self.players[side]
 end
