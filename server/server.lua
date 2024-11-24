@@ -8,7 +8,7 @@ local logger = require "logger"
 local MapConfig = require "utils.mapConfig"
 local MessageHandler = require "utils.messageHandler"
 local BaseManager = require "./baseManager"
-local CollisionSystem = require "utils.CollisionSystem"
+local CollisionSystem = require "utils.collisionSystem"
 local SpatialGrid = require "utils.spatialGrid"
 
 io.stdout:setvbuf('no')  -- Disable output buffering
@@ -40,8 +40,9 @@ function GameServer:new()
 
     -- Initialize enemy manager with paths and spawn points
     server.enemyManager = ServerEnemyManager:new({
-        zones = server.mapConfig.zones,
-        spawnZones = server.mapConfig.spawnZones,
+        pathManager = server.mapConfig.pathManager,
+        width = server.mapConfig.originalWidth,
+        height = server.mapConfig.height,
         tileSize = server.mapConfig.tileSize,
         baseManager = server.baseManager,
         onEnemyDeath = function(enemy)

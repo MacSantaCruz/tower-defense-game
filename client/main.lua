@@ -3,6 +3,7 @@ local sti = require "sti"
 local camera = require "camera"
 local TowerManager = require "towerManager"
 local EnemyManager = require "enemyManager"
+local EnemyFactory = require "enemyFactory"
 local PlayerManager = require "./playerManager"
 local Network = require "network"
 local logger = require('logger')
@@ -19,6 +20,7 @@ local performanceStats = {
 
 function love.load()
     _G.LOGGER = logger
+    EnemyFactory:init()
     -- Initialize network connection
     local success = Network:init()
     if not success then
@@ -27,7 +29,7 @@ function love.load()
     end
 
     -- Connect to server (could be localhost for testing or a remote server)
-    local serverHost = "localhost" --"24.199.101.226"  -- "localhost"-- Change this for remote server
+    local serverHost = "localhost"  -- "localhost"-- Change this for remote server
     local serverPort = 12345
     
     success = Network:connect(serverHost, serverPort)
@@ -35,6 +37,7 @@ function love.load()
         LOGGER.error("Failed to connect to server!")
         return
     end
+
 
     -- Initialize player manager (now simplified as we're always a client)
     _G.playerManager = PlayerManager:new()

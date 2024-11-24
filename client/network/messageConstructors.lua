@@ -13,10 +13,10 @@ local MessageConstructors = {
     end,
 
     -- Enemy-related messages
-    [NetworkConstants.CLIENT.SPAWN_ENEMY] = function(zoneSpawnIndex, enemyType, targetSide)
+    [NetworkConstants.CLIENT.SPAWN_ENEMY] = function(pathId, enemyType, targetSide)
         return {
             type = NetworkConstants.CLIENT.SPAWN_ENEMY,
-            zoneSpawnIndex = zoneSpawnIndex,
+            pathId = pathId,
             enemyType = enemyType,
             targetSide = targetSide,
             timestamp = os.time()

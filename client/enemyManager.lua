@@ -12,7 +12,11 @@ function ClientEnemyManager:new(config)
     manager.side = config.side
     manager.enemies = {}
     manager.moveCache = {}
-    manager.lastUpdateTime = love.timer.getTime()  -- Initialize time right away
+    manager.lastUpdateTime = love.timer.getTime()
+    manager.batchManager = EnemyFactory:getBatchManager()
+    if not manager.batchManager then
+        LOGGER.error("BatchManager not initialized!")
+    end
     return manager
 end
 
@@ -21,6 +25,7 @@ function ClientEnemyManager:update(dt)
     local enemiestoRemove = {}
     
     for id, enemy in pairs(self.enemies) do
+        LOGGER.info('HAVE ENEMY: ', id)
         -- Check if enemy exists and handle death state
         if enemy then
             if enemy.deathAnimationComplete then
@@ -29,40 +34,14 @@ function ClientEnemyManager:update(dt)
             else
                 -- Only process movement if enemy is not dying
                 if enemy.targetX and not enemy.isDying then
-                    -- Only calculate movement if we haven't cached it or position changed
-                    local cacheKey = enemy.id .. "_" .. enemy.targetX .. "_" .. enemy.targetY
-                    local moveData = self.moveCache[cacheKey]
+                    local currentTime = love.timer.getTime()
+                    local progress = math.min((currentTime - (enemy.moveStartTime or 0)) / (enemy.interpolationTime or self.interpolationBuffer), 1.0)
                     
-                    if not moveData then
-                        -- Calculate once and cache
-                        local dx = enemy.targetX - enemy.x
-                        local dy = enemy.targetY - enemy.y
-                        local distSq = dx * dx + dy * dy
-                        
-                        if distSq > 0.01 then
-                            moveData = {
-                                dx = dx,
-                                dy = dy,
-                                distSq = distSq,
-                                velocityX = dx / self.serverUpdateRate,
-                                velocityY = dy / self.serverUpdateRate
-                            }
-                            self.moveCache[cacheKey] = moveData
-                            
-                            if enemy.lastCacheKey and enemy.lastCacheKey ~= cacheKey then
-                                self.moveCache[enemy.lastCacheKey] = nil
-                            end
-                            enemy.lastCacheKey = cacheKey
-                        end
-                    end
-                    
-                    if moveData then
-                        local progress = dt / self.interpolationBuffer
-                        progress = math.min(progress, 1.0)
-                        
-                        enemy.x = enemy.x + moveData.velocityX * dt * progress
-                        enemy.y = enemy.y + moveData.velocityY * dt * progress
-                    end
+                    enemy.x = enemy.startX + (enemy.targetX - enemy.startX) * progress
+                    enemy.y = enemy.startY + (enemy.targetY - enemy.startY) * progress
+                    LOGGER.info('Updating with x: ', enemy.x)
+                    LOGGER.info('Updating with y: ', enemy.y)
+                    enemy:update(dt)
                 end
                 
                 -- Update facing based on server-provided direction if not dying
@@ -110,12 +89,24 @@ function ClientEnemyManager:updateEnemy(id, data)
             end
             
             if not enemy.isAttacking and data.x and data.y then
-                if enemy.lastCacheKey then
-                    self.moveCache[enemy.lastCacheKey] = nil
-                end
-                
+                enemy.startX = enemy.x or data.x
+                enemy.startY = enemy.y or data.y
                 enemy.targetX = data.x
                 enemy.targetY = data.y
+                enemy.moveStartTime = love.timer.getTime()
+                
+                -- Store the movement vector from server
+                if data.moveX and data.moveY then
+                    enemy.moveX = data.moveX
+                    enemy.moveY = data.moveY
+                else
+                    enemy.moveX = nil
+                    enemy.moveY = nil
+                end
+                
+                -- Use precise interpolation time based on actual movement
+                local dist = math.sqrt((data.x - enemy.startX)^2 + (data.y - enemy.startY)^2)
+                enemy.interpolationTime = math.min(dist / (enemy.speed or 50), self.interpolationBuffer)
             end
             
             if data.direction then
@@ -177,43 +168,46 @@ function ClientEnemyManager:updateEnemyPosition(id, x, y, direction, health, tar
 end
 
 function ClientEnemyManager:draw()
-    love.graphics.setColor(1, 1, 1, 1)
+    -- Clear all sprite batches
+    self.batchManager:clear()
     
+    -- First pass: Add all enemies to sprite batches
     for _, enemy in pairs(self.enemies) do
-
-        enemy:draw()
-
-        -- Draw attack indicator if attacking
-        if enemy.isAttacking then
-            -- Draw attack waves/rings that pulse
-            local attackScale = math.sin(1.5 * math.pi * 4) * 0.5 + 0.5
-            love.graphics.setColor(1, 0, 0, attackScale * 0.5)
+        if not enemy.deathAnimationComplete then
+            local direction = enemy.isDying and enemy.deathDirection or enemy.facing
+            local batchKey = enemy.type .. "_" .. direction
+            local batch = self.batchManager.batches[batchKey]
+            local frame = enemy.frames[direction][enemy.currentFrame]
             
-            -- Draw concentric circles
-            for i = 1, 3 do
-                local radius = (20 + i * 10) * attackScale
-                love.graphics.circle("line", enemy.x, enemy.y, radius)
-            end
-            
-            -- Draw small lightning bolts or attack symbols
-            local boltLength = 15
-            local angles = {0, math.pi/2, math.pi, 3*math.pi/2}
-            love.graphics.setColor(1, 0, 0, attackScale)
-            for _, angle in ipairs(angles) do
-                local x1 = enemy.x + math.cos(angle) * boltLength
-                local y1 = enemy.y + math.sin(angle) * boltLength
-                local x2 = enemy.x + math.cos(angle) * (boltLength * 1.5)
-                local y2 = enemy.y + math.sin(angle) * (boltLength * 1.5)
-                love.graphics.line(x1, y1, x2, y2)
+            if batch and frame then
+                batch:add(
+                    frame,
+                    enemy.x,
+                    enemy.y,
+                    0,
+                    enemy.scale * enemy.flipX,
+                    enemy.scale,
+                    enemy.spriteWidth / 2,
+                    enemy.spriteHeight / 2
+                )
             end
         end
-        
-        -- Optional: Draw health bar
-        local healthPercentage = enemy.health / enemy.maxHealth
-        love.graphics.setColor(1 - healthPercentage, healthPercentage, 0, 0.8)
-        love.graphics.rectangle("fill", 
-            enemy.x - 16, enemy.y - 24,
-            32 * healthPercentage, 4)
+    end
+    
+    -- Second pass: Draw all batches
+    for _, batch in pairs(self.batchManager.batches) do
+        love.graphics.draw(batch)
+    end
+    
+    -- Draw health bars (can't be batched)
+    for _, enemy in pairs(self.enemies) do
+        if not enemy.deathAnimationComplete then
+            local healthPercentage = enemy.health / enemy.maxHealth
+            love.graphics.setColor(1 - healthPercentage, healthPercentage, 0, 0.8)
+            love.graphics.rectangle("fill", 
+                enemy.x - 16, enemy.y - 24,
+                32 * healthPercentage, 4)
+        end
     end
     
     love.graphics.setColor(1, 1, 1, 1)

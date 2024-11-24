@@ -103,7 +103,7 @@ function TowerManager:findTarget(tower)
     
     for _, entity in ipairs(nearbyEntities) do
         -- Check if entity is an enemy (has health property)
-        if entity.health and self:isValidTarget(tower, entity) then
+        if entity.health and entity.type ~= "base" and self:isValidTarget(tower, entity)  then
             local distance = self:calculateDistance(tower, entity)
             if distance <= tower.range then
                 local priority = self:calculateTargetPriority(tower, entity, distance)

@@ -11,36 +11,23 @@ BlobEnemy.spriteHeight = 48
 BlobEnemy.color = {1, 0.8, 0.8, 1}
 BlobEnemy.frameDelay = 0.15
 
+-- Static sprite paths that can be used by BatchManager
+BlobEnemy.spritePaths = {
+    up = "images/enemies/blobEnemy/U_Walk.png",
+    down = "images/enemies/blobEnemy/D_Walk.png",
+    side = "images/enemies/blobEnemy/S_Walk.png",
+    deathUp = "images/enemies/blobEnemy/U_Death.png",
+    deathDown = "images/enemies/blobEnemy/D_Death.png",
+    deathSide = "images/enemies/blobEnemy/S_Death.png"
+}
+
+-- Define number of frames for each animation type
+BlobEnemy.frameCount = 6
+
 -- Function to initialize the enemy (call this after creating new instance)
 function BlobEnemy:init()
-    LOGGER.info("Initializing BlobEnemy")
-    
-    -- Load directional sprites
-    self:loadDirectionalSprites({
-        up = "images/enemies/blobEnemy/U_WALK.png",     -- Adjust these paths to match your actual file structure
-        down = "images/enemies/blobEnemy/D_WALK.png",
-        side = "images/enemies/blobEnemy/S_WALK.png",
-        deathUp = "images/enemies/blobEnemy/U_DEATH.png",
-        deathDown = "images/enemies/blobEnemy/D_DEATH.png",
-        deathSide = "images/enemies/blobEnemy/S_DEATH.png"
-    })
-
-    -- Set up animations for each direction
-    self:setupAnimation(6, "up")
-    self:setupAnimation(6, "down")
-    self:setupAnimation(6, "side")
-    
-
-    self:setupAnimation(6, "deathUp")
-    self:setupAnimation(6, "deathDown")
-    self:setupAnimation(6, "deathSide")
-
-    -- Set initial facing direction
     self.facing = "down"
-    self.currentSprite = self.sprites["down"]
-    self.currentFrame = 1
-    
-    LOGGER.info("BlobEnemy initialization complete")
+    self.currentFrame = 1    
 end
 
 -- Override the new function to call init
