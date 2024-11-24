@@ -9,6 +9,6 @@ PeonEnemy.speed = 60
 PeonEnemy.armor = 10
 PeonEnemy.cost = 300
 PeonEnemy.killValue = 200
-PeonEnemy.incomeChange = 5
+PeonEnemy.incomeChange = 50
 
 return PeonEnemy

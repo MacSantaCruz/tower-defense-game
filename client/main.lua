@@ -29,7 +29,8 @@ function love.load()
     end
 
     -- Connect to server (could be localhost for testing or a remote server)
-    local serverHost = "localhost"  -- "localhost"-- Change this for remote server
+    -- local serverHost = "localhost"  -- "localhost"-- Change this for remote server
+    local serverHost = "24.199.101.226"
     local serverPort = 12345
     
     success = Network:connect(serverHost, serverPort)
