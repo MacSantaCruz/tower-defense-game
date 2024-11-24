@@ -25,7 +25,6 @@ function ClientEnemyManager:update(dt)
     local enemiestoRemove = {}
     
     for id, enemy in pairs(self.enemies) do
-        LOGGER.info('HAVE ENEMY: ', id)
         -- Check if enemy exists and handle death state
         if enemy then
             if enemy.deathAnimationComplete then
@@ -39,8 +38,6 @@ function ClientEnemyManager:update(dt)
                     
                     enemy.x = enemy.startX + (enemy.targetX - enemy.startX) * progress
                     enemy.y = enemy.startY + (enemy.targetY - enemy.startY) * progress
-                    LOGGER.info('Updating with x: ', enemy.x)
-                    LOGGER.info('Updating with y: ', enemy.y)
                     enemy:update(dt)
                 end
                 
@@ -69,7 +66,6 @@ end
 
 function ClientEnemyManager:updateEnemy(id, data)
     local enemy = self.enemies[id]
-    LOGGER.info("Updating enemy:", id, "Update type:", data.type)
     if enemy then
         if data.type == 'enemyDied' then
             LOGGER.info("Enemy died, starting death animation")

@@ -99,8 +99,6 @@ function ServerEnemyManager:update(dt)
 
                 if math.abs(moveX) > 0.01 or math.abs(moveY) > 0.01 then
                     enemy.direction = math.atan2(moveY, moveX)
-                    
-                    logger.info('Sending Movement update')
                     table.insert(updates, {
                         id = enemy.id,
                         x = enemy.x,

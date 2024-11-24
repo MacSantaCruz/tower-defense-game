@@ -65,7 +65,6 @@ function ServerBaseManager:takeDamage(side, amount)
             side = side
         })
     end
-    print('SENDING BASE UPDATES')
     return updates
 end
 

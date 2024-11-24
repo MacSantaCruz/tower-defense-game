@@ -149,9 +149,7 @@ local MessageHandlers = {
                     LOGGER.info("BASE DESTROYED")
                 else
                     local enemy = network.gameState.enemies[update.id]
-                    LOGGER.info('ENEMY UPDATE: ', update.type)
                     if enemy then
-                        LOGGER.info('Enemy Exists To UPDATE: ', update.type)
                         if update.type == NetworkConstants.UPDATE.ENEMY_DEATH then
                             LOGGER.info("[Network] Received death update for Enemy:", update.id)
                             network.gameState.enemies[update.id] = nil
@@ -193,11 +191,8 @@ local MessageHandlers = {
                                 })
                             end
                         elseif update.type == "movement" then
-                            LOGGER.info('ACTUALLY GOT MOVEMENT')
-                            LOGGER.info('TARGETSIDE: ', update.targetSide)
                             local player = playerManager.players[update.targetSide]
                             if player then
-                                LOGGER.info('UPDATING MOVEMENT FOR : ', update.id)
                                 player.enemyManager:updateEnemy(
                                     update.id,
                                     update
