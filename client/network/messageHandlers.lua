@@ -107,7 +107,6 @@ local MessageHandlers = {
         if data.towerUpdates then
             for _, update in ipairs(data.towerUpdates) do
                 if update.type == NetworkConstants.UPDATE.TOWER_ATTACK then
-                    LOGGER.info("[Network] Processing attack - Tower:", update.id, "Target:", update.targetId)
                     local tower = network.gameState.towers[update.id]
                     if tower then
                         local player = playerManager.players[tower.side]
@@ -116,7 +115,6 @@ local MessageHandlers = {
                         end
                     end
                 elseif update.type == NetworkConstants.UPDATE.ENEMY_DAMAGE then
-                    LOGGER.info("[Network] Received Damage for Enemy:", update.id)
                     local enemy = network.gameState.enemies[update.id]
                     if enemy then
                         -- Update network state

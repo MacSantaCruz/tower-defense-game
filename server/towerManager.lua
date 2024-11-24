@@ -125,8 +125,6 @@ end
 
 
 function TowerManager:isValidTarget(tower, enemy)
-    print(string.format("[Server] Checking target validity - Tower side: %s, Enemy side: %s, Enemy target: %s",
-        tower.side, enemy.side, enemy.targetSide))
         
     -- A tower should attack enemies that are on its side
     -- (i.e. enemies targeting this side)

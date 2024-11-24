@@ -184,27 +184,16 @@ function TowerManager:isValidPlacement(x, y)
         end
     end
 
-    LOGGER.info('Passed isValidPlacement Client')
     return true
 end
 
 function TowerManager:handleAttack(towerId, targetId, damage)
-    LOGGER.debug(string.format("[TowerManager] Handling attack - Tower: %d, Target: %d", towerId, targetId))
     
     local tower = self.towers[towerId]
     if tower then
-        LOGGER.debug("[TowerManager] Found tower")
         local targetEnemy = self.targetEnemies[targetId]
         if targetEnemy then
-            LOGGER.debug(string.format("[TowerManager] Found target at (%.1f, %.1f)", 
-                targetEnemy.x, targetEnemy.y))
             tower:onServerFire(targetEnemy)
-        else
-            LOGGER.debug("[TowerManager] Target enemy not found:", targetId)
-            LOGGER.debug("Available enemies:")
-            for id, _ in pairs(self.targetEnemies) do
-                LOGGER.debug("  -", id)
-            end
         end
     else
         LOGGER.error("[TowerManager] Tower not found:", towerId)

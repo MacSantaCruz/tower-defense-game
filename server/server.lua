@@ -76,8 +76,7 @@ function GameServer:new()
     server.pendingTowerUpdates = {}
 
     server.incomeConfig = {
-        amount = 50,        -- Base income amount
-        interval = 15,      -- Seconds between income payments
+        interval = 10,      -- Seconds between income payments
         lastIncomeTime = 0  -- Track last income payment
     }
 
@@ -91,7 +90,7 @@ function GameServer:updateIncome(currentTime)
     if currentTime - self.incomeConfig.lastIncomeTime >= self.incomeConfig.interval then
         -- Give income to all connected players
         for client, data in pairs(self.clients) do
-            self:modifyGold(client, self.incomeConfig.amount)
+            self:modifyGold(client, data.incomeAmount)
         end
         
         -- Update last income time
@@ -343,8 +342,10 @@ function GameServer:handleNewConnection(client)
     if side then
         self.clients[client] = {
             side = side,
-            gold = 10000
+            gold = 1000,
+            incomeAmount = 50
         }
+        print(self.clients[client].incomeAmount)
 
         -- Send initialization data to the new client
         self:sendToClient(client, {
@@ -355,7 +356,7 @@ function GameServer:handleNewConnection(client)
                 towers = self:getTowers(),
                 nextEntityId = self.gameState.nextEntityId,
                 basePositions = self.mapConfig.basePositions,
-                gold = 10000
+                gold = 1000
             }
         })
         
@@ -390,6 +391,12 @@ function GameServer:modifyGold(client, amount)
     end
     return false
 end
+
+function GameServer:modifyGoldIncome(client, amountToAdd)
+    if self.clients[client] then
+        self.clients[client].incomeAmount = self.clients[client].incomeAmount + amountToAdd
+    end
+end 
 
 function GameServer:getNextId()
     local id = self.gameState.nextEntityId

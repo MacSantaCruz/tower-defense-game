@@ -115,7 +115,9 @@ function MessageHandler:handleSpawnEnemy(client, data)
         return
     end
 
+    local incomeChange = self.server.enemyManager.factory:getEnemyIncomeChange(data.enemyType)
     self.server:modifyGold(client, -enemyCost)
+    self.server:modifyGoldIncome(client, incomeChange)
 
     -- Get next available ID
     local enemyId = self.server:getNextId()

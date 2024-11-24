@@ -27,6 +27,11 @@ function EnemyFactory:getEnemyCost(enemyType)
     return EnemyClass.cost
 end
 
+function EnemyFactory:getEnemyIncomeChange(enemyType)
+    local EnemyClass = self.enemyTypes[enemyType]
+    return EnemyClass.incomeChange
+end 
+
 return EnemyFactory
 
     
